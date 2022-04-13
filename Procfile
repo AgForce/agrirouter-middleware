@@ -1,0 +1,1 @@
+web: java -jar /srv/agrirouter-middleware.jar
