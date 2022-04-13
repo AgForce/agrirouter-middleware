@@ -32,13 +32,13 @@
     <servers>
         <server>
             <id>dke-data</id>
-            <username>${env.GITHUB_USERNAME}</username>
-            <password>${env.GITHUB_TOKEN}</password>
+            <username>doekermk</username>
+            <password>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</password>
         </server>
         <server>
             <id>saschadoemer</id>
-            <username>${env.GITHUB_USERNAME}</username>
-            <password>${env.GITHUB_TOKEN}</password>
+            <username>doekermk</username>
+            <password>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</password>
         </server>
     </servers>
 </settings>
