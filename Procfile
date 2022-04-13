@@ -1,1 +1,1 @@
-web: java -jar target/agrirouter-middleware-application-1.0.0.jar
+web: java -jar /app/agrirouter-middleware-application/target/agrirouter-middleware-application-1.0.0.jar
