@@ -5,11 +5,11 @@ spring:
     password: ${MYSQL_PASSWORD}
   data:
     mongodb:
-      host: ${MONGODB_HOST}
-      port: ${MONGODB_PORT}
+      uri: ${MONGODB_URI}
       database: ${MONGODB_SCHEMA}
       username: ${MONGODB_USER}
       password: ${MONGODB_PASSWORD}
+
   jpa:
     hibernate:
       ddl-auto: validate
