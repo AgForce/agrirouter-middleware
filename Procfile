@@ -1,1 +1,1 @@
-web: java -jar /app/agrirouter-middleware-application/target/agrirouter-middleware.jar
+web: java $JAVA_OPTIONS -jar /app/agrirouter-middleware-application/target/agrirouter-middleware.jar
