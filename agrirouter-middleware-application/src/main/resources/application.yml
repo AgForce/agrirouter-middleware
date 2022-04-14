@@ -6,10 +6,6 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI}
-      database: ${MONGODB_SCHEMA}
-      username: ${MONGODB_USER}
-      password: ${MONGODB_PASSWORD}
-
   jpa:
     hibernate:
       ddl-auto: validate
