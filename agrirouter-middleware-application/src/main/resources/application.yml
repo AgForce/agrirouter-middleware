@@ -25,7 +25,7 @@ logging:
     org.hibernate.type.descriptor.sql: off
     org.springframework.web.filter.CommonsRequestLoggingFilter: off
     de.agrirouter.middleware: trace
-    com.dke.data.agrirouter: off
+    com.dke.data.agrirouter: trace
 
 app:
   fetch-messages:
@@ -34,7 +34,7 @@ app:
   scheduled:
     connection-check: "0 */1 * * * *"
     fetching-and-confirming-existing-messages: "0 */5 * * * *"
-    status-logging: "0 */1 * * * *"
-    recipient-query: "0 */1 * * * *"
+    status-logging: "0 */5 * * * *"
+    recipient-query: "0 */5 * * * *"
   branding:
     favicon: "/img/favicon.ico"
