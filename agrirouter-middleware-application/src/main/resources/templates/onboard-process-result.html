@@ -19,7 +19,9 @@
                 <div class="mdl-cell mdl-cell--12-col" style="text-align: center"
                      th:text="#{onboard-process-result.success-message}"></div>
                 <div class="mdl-cell mdl-cell--12-col" style="text-align: center"
-                     th:text="#{onboard-process-result.close-window}"></div>
+                     th:text="#{onboard-process-result.close-window}">
+                <a href="https://trecker-staging.herokuapp.com/agrirouter?onboardProcessResult=SUCCESS">AgForce Applikation</a>
+                </div>
             </div>
             <div class="mdl-cell mdl-cell--12-col"
                  th:unless="${#strings.equalsIgnoreCase(onboardProcessResult, 'SUCCESS')}">
@@ -30,7 +32,9 @@
                 <div class="mdl-cell mdl-cell--12-col" style="text-align: center"
                      th:text="#{onboard-process-result.failure-message}"></div>
                 <div class="mdl-cell mdl-cell--12-col" style="text-align: center"
-                     th:text="#{onboard-process-result.close-window}"></div>
+                     th:text="#{onboard-process-result.close-window}">
+                <a href="https://trecker-staging.herokuapp.com/agrirouter?onboardProcessResult=SUCCESS">AgForce Applikation</a>
+                </div>
             </div>
         </div>
         <div class="mdl-cell mdl-cell--5-col"></div>
