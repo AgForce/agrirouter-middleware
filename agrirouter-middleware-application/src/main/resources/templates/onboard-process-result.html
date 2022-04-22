@@ -21,7 +21,8 @@
                 <div class="mdl-cell mdl-cell--12-col" style="text-align: center"
                      th:text="#{onboard-process-result.close-window}">
                 </div>
-                <div>
+                <br>
+                <div class="mdl-cell mdl-cell--12-col" style="text-align: center;color:darkgreen;font-size: large">
                     <a target="_blank" href="https://trecker-staging.herokuapp.com/agrirouter?onboardProcessResult=SUCCESS"
                         th:text="#{onboard-process-result.application}"></a>
                 </div>
@@ -37,7 +38,8 @@
                 <div class="mdl-cell mdl-cell--12-col" style="text-align: center"
                      th:text="#{onboard-process-result.close-window}">
                 </div>
-                <div>
+                <br>
+                <div class="mdl-cell mdl-cell--12-col" style="text-align: center;color:darkgreen;font-size: large">
                     <a target="_blank" href="https://trecker-staging.herokuapp.com/agrirouter?onboardProcessResult=FAILURE"
                         th:text="#{onboard-process-result.application}"></a>
                 </div>
@@ -46,5 +48,14 @@
         <div class="mdl-cell mdl-cell--5-col"></div>
     </div>
 </main>
+<footer class="mdl-mega-footer">
+    <div class="mdl-mega-footer__bottom-section">
+        <div class="mdl-logo" th:text="#{layout.footer.current-version}"></div>
+        <ul class="mdl-mega-footer__link-list">
+            <li><a target="_blank" href="https://github.com/agrirouter-middleware/agrirouter-middleware"
+                    th:text="#{onboard-process-result.application}"></a></li>
+        </ul>
+    </div>
+</footer>
 </body>
 </html>
