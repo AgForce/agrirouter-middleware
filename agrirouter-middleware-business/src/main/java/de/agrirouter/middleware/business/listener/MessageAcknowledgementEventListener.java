@@ -4,17 +4,20 @@ import com.dke.data.agrirouter.api.dto.encoding.DecodeMessageResponse;
 import com.dke.data.agrirouter.api.enums.ContentMessageType;
 import com.dke.data.agrirouter.api.enums.SystemMessageType;
 import com.dke.data.agrirouter.api.service.messaging.encoding.DecodeMessageService;
+import de.agrirouter.middleware.api.errorhandling.error.ErrorKey;
 import de.agrirouter.middleware.api.errorhandling.error.ErrorMessageFactory;
 import de.agrirouter.middleware.api.events.ActivateDeviceEvent;
 import de.agrirouter.middleware.api.events.MessageAcknowledgementEvent;
 import de.agrirouter.middleware.api.events.UpdateSubscriptionsForEndpointEvent;
 import de.agrirouter.middleware.business.EndpointService;
-import de.agrirouter.middleware.business.cache.messaging.MessageCache;
+import de.agrirouter.middleware.business.cache.cloud.CloudOnboardingFailureCache;
+import de.agrirouter.middleware.business.events.CloudOffboardingEvent;
 import de.agrirouter.middleware.integration.ack.DynamicMessageProperties;
 import de.agrirouter.middleware.integration.ack.MessageWaitingForAcknowledgement;
 import de.agrirouter.middleware.integration.ack.MessageWaitingForAcknowledgementService;
 import de.agrirouter.middleware.persistence.EndpointRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -31,21 +34,20 @@ public class MessageAcknowledgementEventListener {
     private final EndpointService endpointService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final DecodeMessageService decodeMessageService;
-
-    private final MessageCache messageCache;
+    private final CloudOnboardingFailureCache cloudOnboardingFailureCache;
 
     public MessageAcknowledgementEventListener(MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService,
                                                EndpointRepository endpointRepository,
                                                EndpointService endpointService,
                                                ApplicationEventPublisher applicationEventPublisher,
                                                DecodeMessageService decodeMessageService,
-                                               MessageCache messageCache) {
+                                               CloudOnboardingFailureCache cloudOnboardingFailureCache) {
         this.messageWaitingForAcknowledgementService = messageWaitingForAcknowledgementService;
         this.endpointRepository = endpointRepository;
         this.endpointService = endpointService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.decodeMessageService = decodeMessageService;
-        this.messageCache = messageCache;
+        this.cloudOnboardingFailureCache = cloudOnboardingFailureCache;
     }
 
     /**
@@ -68,6 +70,9 @@ public class MessageAcknowledgementEventListener {
                     }
                     if (ContentMessageType.ISO_11783_DEVICE_DESCRIPTION.getKey().equals(messageWaitingForAcknowledgement.getTechnicalMessageType())) {
                         applicationEventPublisher.publishEvent(new ActivateDeviceEvent(this, messageWaitingForAcknowledgement.getDynamicPropertyAsString(DynamicMessageProperties.TEAM_SET_CONTEXT_ID)));
+                    }
+                    if (SystemMessageType.DKE_CLOUD_OFFBOARD_ENDPOINTS.getKey().equals(messageWaitingForAcknowledgement.getTechnicalMessageType())) {
+                        applicationEventPublisher.publishEvent(new CloudOffboardingEvent(this, messageWaitingForAcknowledgement.getDynamicPropertyAsStringList(DynamicMessageProperties.EXTERNAL_VIRTUAL_ENDPOINT_IDS)));
                     }
                 }
                 case ACK_WITH_MESSAGES -> {
@@ -97,11 +102,7 @@ public class MessageAcknowledgementEventListener {
     }
 
     private void handleSuccessMessage(MessageWaitingForAcknowledgement messageWaitingForAcknowledgement) {
-        log.debug("Since the message had a successful ACK, nothing to do right now. The message waiting for ACK was deleted.");
-        final var optional = endpointRepository.findByAgrirouterEndpointId(messageWaitingForAcknowledgement.getAgrirouterEndpointId());
-        if (optional.isEmpty()) {
-            log.error(ErrorMessageFactory.couldNotFindEndpoint().asLogMessage());
-        }
+        log.debug("Since the message '{}' for endpoint '{}' had a successful ACK, nothing to do right now. The message waiting for ACK was deleted.", messageWaitingForAcknowledgement.getMessageId(), messageWaitingForAcknowledgement.getAgrirouterEndpointId());
     }
 
     private void handleSuccessMessageAndUpdateWarnings(DecodeMessageResponse decodedMessageResponse, MessageWaitingForAcknowledgement messageWaitingForAcknowledgement) {
@@ -122,6 +123,15 @@ public class MessageAcknowledgementEventListener {
         final var optional = endpointRepository.findByAgrirouterEndpointId(messageWaitingForAcknowledgement.getAgrirouterEndpointId());
         if (optional.isPresent()) {
             final var endpoint = optional.get();
+            if (SystemMessageType.DKE_CLOUD_ONBOARD_ENDPOINTS.getKey().equals(messageWaitingForAcknowledgement.getTechnicalMessageType())) {
+                log.debug("Looks like this was a cloud onboarding message. There has to be a failure for the virtual endpoint ID.");
+                final var externalVirtualEndpointId = messageWaitingForAcknowledgement.getDynamicPropertyAsString(DynamicMessageProperties.EXTERNAL_VIRTUAL_ENDPOINT_ID);
+                if (StringUtils.isNotBlank(externalVirtualEndpointId)) {
+                    cloudOnboardingFailureCache.put(endpoint.getExternalEndpointId(), externalVirtualEndpointId, ErrorKey.UNKNOWN_ERROR.getKey(), "There was an error while sending the message to the agrirouter. Please check if the endpoint is available.");
+                } else {
+                    log.error("The external virtual endpoint ID is blank. This should not happen.");
+                }
+            }
             endpointService.updateErrors(endpoint, decodedMessageResponse);
         } else {
             log.error(ErrorMessageFactory.couldNotFindEndpoint().asLogMessage());

@@ -3,13 +3,15 @@ package de.agrirouter.middleware.controller.secured;
 import de.agrirouter.middleware.api.errorhandling.ParameterValidationException;
 import de.agrirouter.middleware.business.ApplicationService;
 import de.agrirouter.middleware.business.EndpointService;
+import de.agrirouter.middleware.business.cache.cloud.CloudOnboardingFailureCache;
+import de.agrirouter.middleware.business.cache.messaging.MessageCache;
 import de.agrirouter.middleware.controller.dto.request.EndpointHealthStatusRequest;
 import de.agrirouter.middleware.controller.dto.request.EndpointStatusRequest;
 import de.agrirouter.middleware.controller.dto.response.*;
-import de.agrirouter.middleware.controller.dto.response.domain.EndpointWithStatusDto;
-import de.agrirouter.middleware.controller.dto.response.domain.MessageRecipientDto;
-import de.agrirouter.middleware.controller.helper.CreateEndpointStatusHelper;
+import de.agrirouter.middleware.controller.dto.response.domain.*;
+import de.agrirouter.middleware.controller.helper.EndpointStatusHelper;
 import de.agrirouter.middleware.integration.ack.MessageWaitingForAcknowledgementService;
+import de.agrirouter.middleware.integration.mqtt.MqttClientManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Controller to manage applications.
@@ -42,19 +45,28 @@ public class EndpointController implements SecuredApiController {
     private final EndpointService endpointService;
     private final ModelMapper modelMapper;
     private final MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService;
+    private final MessageCache messageCache;
+    private final MqttClientManagementService mqttClientManagementService;
+    private final CloudOnboardingFailureCache cloudOnboardingFailureCache;
 
     public EndpointController(ApplicationService applicationService,
                               EndpointService endpointService,
                               ModelMapper modelMapper,
-                              MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService) {
+                              MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService,
+                              MessageCache messageCache,
+                              MqttClientManagementService mqttClientManagementService,
+                              CloudOnboardingFailureCache cloudOnboardingFailureCache) {
         this.applicationService = applicationService;
         this.endpointService = endpointService;
         this.modelMapper = modelMapper;
         this.messageWaitingForAcknowledgementService = messageWaitingForAcknowledgementService;
+        this.messageCache = messageCache;
+        this.mqttClientManagementService = mqttClientManagementService;
+        this.cloudOnboardingFailureCache = cloudOnboardingFailureCache;
     }
 
     /**
-     * Find an endpoint status of an application by the given IDs of the endpoint.
+     * Find an endpoint status by the given IDs of the endpoint.
      *
      * @param endpointStatusRequest The request containing the IDs of the endpoints.
      * @return HTTP 200 with the data of the endpoint or an HTTP 400 with an error message.
@@ -115,10 +127,429 @@ public class EndpointController implements SecuredApiController {
         final var endpoints = endpointService.findByExternalEndpointIds(endpointStatusRequest.getExternalEndpointIds());
         final var mappedEndpoints = new HashMap<String, EndpointWithStatusDto>();
         endpoints.forEach(endpoint -> {
-            final var endpointWithStatusDto = CreateEndpointStatusHelper.map(modelMapper, endpointService, applicationService, messageWaitingForAcknowledgementService, endpoint);
+            final var endpointWithStatusDto = EndpointStatusHelper.mapEndpointStatus(modelMapper, applicationService, messageCache, endpoint);
             mappedEndpoints.put(endpoint.getExternalEndpointId(), endpointWithStatusDto);
         });
         return ResponseEntity.ok(new EndpointStatusResponse(mappedEndpoints));
+    }
+
+    /**
+     * Check the cloud onboarding failures for the given IDs of the virtual endpoint.
+     *
+     * @param externalVirtualEndpointId The external virtual endpoint ID.
+     * @return HTTP 200 with the data of the endpoint or error message otherwise.
+     */
+    @GetMapping(
+            value = "/failures/cloud-onboarding/{externalVirtualEndpointId}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            operationId = "endpoint.failures.cloud-onboarding",
+            description = "Fetch the cloud-onboarding failures for the virtual endpoint id.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "The status information for this endpoint.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "204",
+                            description = "In case there is no failure.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a business exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a parameter validation exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ParameterValidationProblemResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "In case of an unknown error.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<CloudOnboardingFailureResponse> cloudOnboardingFailures(@Parameter(description = "The external virtual endpoint ID.", required = true) @PathVariable("externalVirtualEndpointId") String externalVirtualEndpointId) {
+        Optional<CloudOnboardingFailureCache.FailureEntry> optionalFailureEntry = cloudOnboardingFailureCache.get(externalVirtualEndpointId);
+        if (optionalFailureEntry.isPresent()) {
+            CloudOnboardingFailureCache.FailureEntry failureEntry = optionalFailureEntry.get();
+            final var cloudOnboardFailure = new CloudOnboardingFailureDto();
+            cloudOnboardFailure.setErrorCode(failureEntry.errorCode());
+            cloudOnboardFailure.setErrorMessage(failureEntry.errorMessage());
+            cloudOnboardFailure.setExternalEndpointId(failureEntry.externalEndpointId());
+            cloudOnboardFailure.setTimestamp(failureEntry.timestamp());
+            cloudOnboardFailure.setVirtualExternalEndpointId(failureEntry.virtualExternalEndpointId());
+            return ResponseEntity.ok(new CloudOnboardingFailureResponse(cloudOnboardFailure));
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+
+    /**
+     * Check the connection status for the given IDs of the endpoint.
+     *
+     * @param endpointStatusRequest The request containing the IDs of the endpoints.
+     * @return HTTP 200 with the data of the endpoint or an HTTP 400 with an error message.
+     */
+    @PostMapping(
+            value = "/status/connection",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            operationId = "endpoint.status.connection",
+            description = "Fetch the connection status of an existing endpoint.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "The status information for this endpoint.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a business exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a parameter validation exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ParameterValidationProblemResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "In case of an unknown error.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<EndpointConnectionStatusResponse> connectionStatus(@Parameter(description = "The to search for one or multiple endpoints.", required = true) @Valid @RequestBody EndpointStatusRequest endpointStatusRequest,
+                                                                             @Parameter(hidden = true) Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ParameterValidationException(errors);
+        }
+        final var endpoints = endpointService.findByExternalEndpointIds(endpointStatusRequest.getExternalEndpointIds());
+        final var mappedEndpoints = new HashMap<String, EndpointConnectionStatusDto>();
+        endpoints.forEach(endpoint -> {
+            final var endpointWithStatusDto = EndpointStatusHelper.mapConnectionStatus(modelMapper, endpointService, endpoint);
+            mappedEndpoints.put(endpoint.getExternalEndpointId(), endpointWithStatusDto);
+        });
+        return ResponseEntity.ok(new EndpointConnectionStatusResponse(mappedEndpoints));
+    }
+
+    /**
+     * Check the warnings for the given IDs of the endpoint.
+     *
+     * @param endpointStatusRequest The request containing the IDs of the endpoints.
+     * @return HTTP 200 with the data of the endpoint or an HTTP 400 with an error message.
+     */
+    @PostMapping(
+            value = "/status/warnings",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            operationId = "endpoint.status.warnings",
+            description = "Fetch the warnings of an existing endpoint.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "The status information for this endpoint.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a business exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a parameter validation exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ParameterValidationProblemResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "In case of an unknown error.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<EndpointWarningsResponse> warnings(@Parameter(description = "The to search for one or multiple endpoints.", required = true) @Valid @RequestBody EndpointStatusRequest endpointStatusRequest,
+                                                             @Parameter(hidden = true) Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ParameterValidationException(errors);
+        }
+        final var endpoints = endpointService.findByExternalEndpointIds(endpointStatusRequest.getExternalEndpointIds());
+        final var mappedEndpoints = new HashMap<String, EndpointWarningsDto>();
+        endpoints.forEach(endpoint -> {
+            final var endpointWithStatusDto = EndpointStatusHelper.mapWarnings(modelMapper, endpointService, endpoint);
+            mappedEndpoints.put(endpoint.getExternalEndpointId(), endpointWithStatusDto);
+        });
+        return ResponseEntity.ok(new EndpointWarningsResponse(mappedEndpoints));
+    }
+
+    /**
+     * Fetch the errors for the endpoint.
+     *
+     * @param endpointStatusRequest -
+     * @param errors                -
+     * @return -
+     */
+    @PostMapping(
+            value = "/status/errors",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            operationId = "endpoint.status.errors",
+            description = "Fetch the errors of an existing endpoint.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "The status information for this endpoint.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a business exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a parameter validation exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ParameterValidationProblemResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "In case of an unknown error.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<EndpointErrorsResponse> errors(@Parameter(description = "The to search for one or multiple endpoints.", required = true) @Valid @RequestBody EndpointStatusRequest endpointStatusRequest,
+                                                         @Parameter(hidden = true) Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ParameterValidationException(errors);
+        }
+        final var endpoints = endpointService.findByExternalEndpointIds(endpointStatusRequest.getExternalEndpointIds());
+        final var mappedEndpoints = new HashMap<String, EndpointErrorsDto>();
+        endpoints.forEach(endpoint -> {
+            final var endpointWithStatusDto = EndpointStatusHelper.mapErrors(modelMapper, endpointService, endpoint);
+            mappedEndpoints.put(endpoint.getExternalEndpointId(), endpointWithStatusDto);
+        });
+        return ResponseEntity.ok(new EndpointErrorsResponse(mappedEndpoints));
+    }
+
+    /**
+     * Fetch the missing ACKs.
+     *
+     * @param endpointStatusRequest -
+     * @param errors                -
+     * @return -
+     */
+    @PostMapping(
+            value = "/status/missing-acknowledgements",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            operationId = "endpoint.status.missing-acknowledgements",
+            description = "Fetch the missing acknowledgements of an existing endpoint.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "The status information for this endpoint.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a business exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a parameter validation exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ParameterValidationProblemResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "In case of an unknown error.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<MissingAcknowledgementsResponse> missingAcknowledgements(@Parameter(description = "The to search for one or multiple endpoints.", required = true) @Valid @RequestBody EndpointStatusRequest endpointStatusRequest,
+                                                                                   @Parameter(hidden = true) Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ParameterValidationException(errors);
+        }
+        final var endpoints = endpointService.findByExternalEndpointIds(endpointStatusRequest.getExternalEndpointIds());
+        final var mappedEndpoints = new HashMap<String, MissingAcknowledgementsDto>();
+        endpoints.forEach(endpoint -> {
+            final var endpointWithStatusDto = EndpointStatusHelper.mapMissingAcknowledgements(modelMapper, endpointService, messageWaitingForAcknowledgementService, endpoint);
+            mappedEndpoints.put(endpoint.getExternalEndpointId(), endpointWithStatusDto);
+        });
+        return ResponseEntity.ok(new MissingAcknowledgementsResponse(mappedEndpoints));
+    }
+
+    /**
+     * Fetch the technical connection state.
+     *
+     * @param endpointStatusRequest -
+     * @param errors                -
+     * @return -
+     */
+    @PostMapping(
+            value = "/status/technical-connection-state",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            operationId = "endpoint.status.technical-connection-state",
+            description = "Fetch the technical connection state of an existing endpoint.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "The status information for this endpoint.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a business exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a parameter validation exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ParameterValidationProblemResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "In case of an unknown error.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<TechnicalConnectionStateResponse> technicalConnectionState(@Parameter(description = "The to search for one or multiple endpoints.", required = true) @Valid @RequestBody EndpointStatusRequest endpointStatusRequest,
+                                                                                     @Parameter(hidden = true) Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ParameterValidationException(errors);
+        }
+        final var endpoints = endpointService.findByExternalEndpointIds(endpointStatusRequest.getExternalEndpointIds());
+        final var mappedEndpoints = new HashMap<String, TechnicalConnectionStateDto>();
+        endpoints.forEach(endpoint -> {
+            final var technicalConnectionStateDto = EndpointStatusHelper.mapTechnicalConnectionState(modelMapper, applicationService, endpointService, mqttClientManagementService, endpoint);
+            mappedEndpoints.put(endpoint.getExternalEndpointId(), technicalConnectionStateDto);
+        });
+        return ResponseEntity.ok(new TechnicalConnectionStateResponse(mappedEndpoints));
     }
 
     /**
@@ -265,7 +696,7 @@ public class EndpointController implements SecuredApiController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Reponse with all the recipients available.",
+                            description = "Response with all the recipients available.",
                             content = @Content(
                                     schema = @Schema(
                                             implementation = EndpointRecipientsResponse.class

@@ -2,16 +2,14 @@ package de.agrirouter.middleware.business;
 
 import de.agrirouter.middleware.api.errorhandling.BusinessException;
 import de.agrirouter.middleware.api.errorhandling.error.ErrorMessageFactory;
-import de.agrirouter.middleware.api.logging.BusinessOperationLogService;
-import de.agrirouter.middleware.api.logging.EndpointLogInformation;
 import de.agrirouter.middleware.business.parameters.VirtualOffboardProcessParameters;
 import de.agrirouter.middleware.domain.enums.EndpointType;
 import de.agrirouter.middleware.integration.VirtualOffboardProcessIntegrationService;
 import de.agrirouter.middleware.integration.parameters.VirtualOffboardProcessIntegrationParameters;
 import de.agrirouter.middleware.persistence.EndpointRepository;
-import org.springframework.scheduling.annotation.Async;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,19 +20,14 @@ import java.util.List;
 @Service
 public class VirtualOffboardProcessService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(VirtualOffboardProcessService.class);
+
     private final EndpointRepository endpointRepository;
     private final VirtualOffboardProcessIntegrationService virtualOffboardProcessIntegrationService;
-    private final EndpointService endpointService;
-    private final BusinessOperationLogService businessOperationLogService;
-
     public VirtualOffboardProcessService(EndpointRepository endpointRepository,
-                                         VirtualOffboardProcessIntegrationService virtualOffboardProcessIntegrationService,
-                                         EndpointService endpointService,
-                                         BusinessOperationLogService businessOperationLogService) {
+                                         VirtualOffboardProcessIntegrationService virtualOffboardProcessIntegrationService) {
         this.endpointRepository = endpointRepository;
         this.virtualOffboardProcessIntegrationService = virtualOffboardProcessIntegrationService;
-        this.endpointService = endpointService;
-        this.businessOperationLogService = businessOperationLogService;
     }
 
     /**
@@ -42,28 +35,22 @@ public class VirtualOffboardProcessService {
      *
      * @param virtualOffboardProcessParameters -
      */
-    @Async
-    @Transactional
     public void offboard(VirtualOffboardProcessParameters virtualOffboardProcessParameters) {
         virtualOffboardProcessParameters.getExternalVirtualEndpointIds().forEach(this::checkWhetherTheEndpointIsVirtualOrNot);
-        final var optionalEndpoint = endpointRepository.findByExternalEndpointIdAndIgnoreDisabled(virtualOffboardProcessParameters.getExternalEndpointId());
+        final var optionalEndpoint = endpointRepository.findByExternalEndpointIdAndIgnoreDeactivated(virtualOffboardProcessParameters.getExternalEndpointId());
         if (optionalEndpoint.isPresent() && !optionalEndpoint.get().isDeactivated()) {
-            final var endpoint = optionalEndpoint.get();
-            final var offboardVirtualEndpointParameters = new VirtualOffboardProcessIntegrationParameters();
-            offboardVirtualEndpointParameters.setEndpoint(endpoint);
-            offboardVirtualEndpointParameters.setEndpointIds(getEndpointIds(virtualOffboardProcessParameters));
-            virtualOffboardProcessIntegrationService.offboard(offboardVirtualEndpointParameters);
-            businessOperationLogService.log(new EndpointLogInformation(endpoint.getExternalEndpointId(), endpoint.getAgrirouterEndpointId()),"Virtual endpoint was removed from the AR.");
-            offboardVirtualEndpointParameters.getEndpointIds().forEach(endpointService::deleteEndpointDataFromTheMiddlewareByAgrirouterId);
+            final var parentEndpoint = optionalEndpoint.get();
+            final var virtualOffboardProcessIntegrationParameters = new VirtualOffboardProcessIntegrationParameters(parentEndpoint,getEndpointIds(virtualOffboardProcessParameters));
+            virtualOffboardProcessIntegrationService.offboard(virtualOffboardProcessIntegrationParameters);
         } else {
-            throw new BusinessException(ErrorMessageFactory.couldNotFindEndpoint());
+            LOGGER.warn("Endpoint with external endpoint ID {} was not found.", virtualOffboardProcessParameters.getExternalEndpointId());
         }
     }
 
     private List<String> getEndpointIds(VirtualOffboardProcessParameters virtualOffboardProcessParameters) {
         final var agrirouterEndpointIds = new ArrayList<String>();
         virtualOffboardProcessParameters.getExternalVirtualEndpointIds().forEach(s -> {
-            final var optionalEndpoint = endpointRepository.findByExternalEndpointIdAndIgnoreDisabled(s);
+            final var optionalEndpoint = endpointRepository.findByExternalEndpointIdAndIgnoreDeactivated(s);
             optionalEndpoint.ifPresent(endpoint -> agrirouterEndpointIds.add(endpoint.getAgrirouterEndpointId()));
         });
         return agrirouterEndpointIds;

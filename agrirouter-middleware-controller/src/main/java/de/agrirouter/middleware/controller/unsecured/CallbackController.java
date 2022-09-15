@@ -28,6 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 /**
  * Callback for the secured onboard process.
  */
@@ -62,6 +65,7 @@ public class CallbackController implements UnsecuredApiController {
      * @param token     The token from the AR.
      * @param signature The signature of the AR.
      */
+    @SuppressWarnings("unused")
     @GetMapping
     @Operation(
             operationId = "callback.callback",
@@ -135,14 +139,14 @@ public class CallbackController implements UnsecuredApiController {
                 onboardProcessParameters.setAccountId(authorizationResponseToken.getAccount());
                 try {
                     securedOnboardProcessService.onboard(onboardProcessParameters);
-                    return redirect(onboardState, application, OnboardProcessResult.SUCCESS);
+                    return redirect(onboardState, application, OnboardProcessResult.SUCCESS, null);
                 } catch (BusinessException e) {
                     log.error("There was an error during the onboard process. Could not handle the request.", e);
-                    return redirect(onboardState, application, OnboardProcessResult.FAILURE);
+                    return redirect(onboardState, application, OnboardProcessResult.FAILURE, e.getErrorMessage().asLogMessage());
                 }
             } else {
                 log.error("There was an error during the onboard process. Could not handle the request. The error was '{}'", error);
-                return redirect(onboardState, application, OnboardProcessResult.FAILURE);
+                return redirect(onboardState, application, OnboardProcessResult.FAILURE, "The error was '" + error + "'");
             }
         } else {
             log.error("The state for the onboard process was not found, skipping the callback.");
@@ -150,21 +154,30 @@ public class CallbackController implements UnsecuredApiController {
         return null;
     }
 
-    private RedirectView redirect(OnboardStateContainer.OnboardState onboardState, Application application, OnboardProcessResult result) {
+    private RedirectView redirect(OnboardStateContainer.OnboardState onboardState, Application application, OnboardProcessResult result, String errorMessage) {
         if (StringUtils.isNotBlank(onboardState.getRedirectUrlAfterCallback())) {
-            return redirectToExternalResultUrl(result, onboardState.getRedirectUrlAfterCallback());
+            return redirect(result, onboardState.getRedirectUrlAfterCallback(), errorMessage);
         } else if (StringUtils.isNotBlank(application.getApplicationSettings().getRedirectUrl())) {
-            return redirectToExternalResultUrl(result, application.getApplicationSettings().getRedirectUrl());
+            return redirect(result, application.getApplicationSettings().getRedirectUrl(), errorMessage);
         } else {
-            return new RedirectView(Routes.ONBOARD_PROCESS_RESULT.concat("?onboardProcessResult=" + result), true);
+            return redirect(result, Routes.UI.ONBOARD_PROCESS_RESULT, errorMessage);
         }
     }
 
-    private RedirectView redirectToExternalResultUrl(OnboardProcessResult result, String externalRedirectUrl) {
-        String redirectUrl = UriComponentsBuilder
-                .fromUriString(externalRedirectUrl)
-                .queryParam("onboardProcessResult", result)
-                .build().toUriString();
-        return new RedirectView(redirectUrl);
+    private RedirectView redirect(OnboardProcessResult result, String externalRedirectUrl, String errorMessage) {
+        if (StringUtils.isBlank(errorMessage)) {
+            String redirectUrl = UriComponentsBuilder
+                    .fromUriString(externalRedirectUrl)
+                    .queryParam("onboardProcessResult", result)
+                    .build().toUriString();
+            return new RedirectView(redirectUrl);
+        } else {
+            String redirectUrl = UriComponentsBuilder
+                    .fromUriString(externalRedirectUrl)
+                    .queryParam("onboardProcessResult", result)
+                    .queryParam("errorMessage", Base64.getEncoder().encodeToString(errorMessage.getBytes(StandardCharsets.UTF_8)))
+                    .build().toUriString();
+            return new RedirectView(redirectUrl);
+        }
     }
 }

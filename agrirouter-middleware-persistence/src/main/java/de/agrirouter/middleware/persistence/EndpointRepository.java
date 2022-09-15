@@ -3,7 +3,6 @@ package de.agrirouter.middleware.persistence;
 import de.agrirouter.middleware.domain.Endpoint;
 import de.agrirouter.middleware.domain.enums.EndpointType;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,20 +19,29 @@ public interface EndpointRepository extends JpaRepository<Endpoint, Long> {
     /**
      * Finding an endpoint by the given agrirouter© endpoint ID.
      *
-     * @param endpointId The ID of the endpoint.
+     * @param agrirouterEndpointId The ID of the endpoint.
      * @return -
      */
-    @Query("from Endpoint e where e.agrirouterEndpointId = :endpointId and e.deactivated = false")
-    Optional<Endpoint> findByAgrirouterEndpointId(@Param("endpointId") String endpointId);
+    @Query("from Endpoint e where e.agrirouterEndpointId = :agrirouterEndpointId and e.deactivated = false")
+    Optional<Endpoint> findByAgrirouterEndpointId(@Param("agrirouterEndpointId") String agrirouterEndpointId);
+
+    /**
+     * Finding an endpoint by the given agrirouter© endpoint ID and ignore deactivated.
+     *
+     * @param agrirouterEndpointId The ID of the endpoint.
+     * @return -
+     */
+    @Query("from Endpoint e where e.agrirouterEndpointId = :agrirouterEndpointId")
+    Optional<Endpoint> findByAgrirouterEndpointIdAndIgnoreDeactivated(@Param("agrirouterEndpointId") String agrirouterEndpointId);
 
     /**
      * Finding an endpoint by the given endpoint ID.
      *
-     * @param endpointId The ID of the endpoint.
+     * @param externalEndpointId The ID of the endpoint.
      * @return -
      */
-    @Query("from Endpoint e where lower(e.externalEndpointId) = lower(:endpointId) and e.deactivated = false")
-    Optional<Endpoint> findByExternalEndpointIdAndIgnoreDisabled(@Param("endpointId") String endpointId);
+    @Query("from Endpoint e where lower(e.externalEndpointId) = lower(:externalEndpointId) and e.deactivated = false")
+    Optional<Endpoint> findByExternalEndpointIdAndIgnoreDeactivated(@Param("externalEndpointId") String externalEndpointId);
 
     /**
      * Finding endpoint by the given endpoint ID and a specific type.
@@ -70,18 +78,25 @@ public interface EndpointRepository extends JpaRepository<Endpoint, Long> {
     List<Endpoint> findByExternalEndpointIdIsIn(List<String> endpointIds);
 
     /**
-     * Delete the endpoint using the given endpoint ID.
+     * Finding endpoints by the given internal application ID.
      *
-     * @param externalEndpointId -
+     * @param internalApplicationId The internal ID of the application.
+     * @return The endpoints.
      */
-    @Modifying
-    void deleteEndpointByExternalEndpointId(String externalEndpointId);
+    @Query("select a.endpoints from Application a where a.internalApplicationId = :internalApplicationId")
+    List<Endpoint> findAllByInternalApplicationId(String internalApplicationId);
 
     /**
-     * Delete the endpoint using the given endpoint ID.
+     * Delete the endpoint by its internal endpoint ID.
      *
-     * @param agrirouterEndpointId -
+     * @param externalEndpointId The external endpoint ID.
      */
-    @Modifying
-    void deleteEndpointByAgrirouterEndpointId(String agrirouterEndpointId);
+    void deleteByExternalEndpointId(String externalEndpointId);
+
+    /**
+     * Find all endpoints by the given external endpoint ID.
+     *
+     * @return The endpoints.
+     */
+    List<Endpoint> findAllByExternalEndpointId(String externalEndpointId);
 }
