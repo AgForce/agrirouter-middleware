@@ -5,7 +5,9 @@ import com.dke.data.agrirouter.api.enums.Gateway;
 import com.dke.data.agrirouter.convenience.mqtt.client.MqttClientService;
 import com.dke.data.agrirouter.convenience.mqtt.client.MqttOptionService;
 import de.agrirouter.middleware.domain.Application;
+import de.agrirouter.middleware.domain.Endpoint;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,7 +146,13 @@ public class MqttClientManagementService {
         return new TechnicalConnectionState(0, false, Collections.emptyList(), Collections.emptyList());
     }
 
-    public int getPendingDeliveryTokens(OnboardingResponse onboardingResponse){
+    /**
+     * Get all pending delivery tokens for the endpoint.
+     *
+     * @param onboardingResponse The onboarding response.
+     * @return The list of pending delivery tokens.
+     */
+    public int getNumberOfPendingDeliveryTokens(OnboardingResponse onboardingResponse) {
         final var cachedMqttClient = cachedMqttClients.get(onboardingResponse.getConnectionCriteria().getClientId());
         if (cachedMqttClient != null) {
             if (cachedMqttClient.mqttClient().isPresent()) {
@@ -153,6 +161,23 @@ public class MqttClientManagementService {
             }
         }
         return 0;
+    }
+
+    /**
+     * Get all pending delivery tokens for the endpoint.
+     *
+     * @param onboardingResponse The onboarding response.
+     * @return The list of pending delivery tokens.
+     */
+    public List<IMqttDeliveryToken> getPendingDeliveryTokens(OnboardingResponse onboardingResponse) {
+        final var cachedMqttClient = cachedMqttClients.get(onboardingResponse.getConnectionCriteria().getClientId());
+        if (cachedMqttClient != null) {
+            if (cachedMqttClient.mqttClient().isPresent()) {
+                IMqttClient iMqttClient = cachedMqttClient.mqttClient().get();
+                return Arrays.asList(iMqttClient.getPendingDeliveryTokens());
+            }
+        }
+        return Collections.emptyList();
     }
 
     /**
@@ -180,4 +205,18 @@ public class MqttClientManagementService {
     public void removeStaleConnections() {
         cachedMqttClients.values().removeIf(cachedMqttClient -> cachedMqttClient.mqttClient().isEmpty() || !cachedMqttClient.mqttClient().get().isConnected());
     }
+
+    /**
+     * Clear the connection errors.
+     *
+     * @param endpoint The endpoint.
+     */
+    public void clearConnectionErrors(Endpoint endpoint) {
+        final var cachedMqttClient = getCachedMqttClient(endpoint.asOnboardingResponse());
+        if (null != cachedMqttClient) {
+            cachedMqttClient.clearConnectionErrors();
+        }
+        cachedMqttClients.put(endpoint.asOnboardingResponse().getConnectionCriteria().getClientId(), cachedMqttClient);
+    }
+
 }

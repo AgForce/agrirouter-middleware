@@ -48,6 +48,58 @@
     }
   ],
   "paths": {
+    "/unsecured/api/maintenance/tenant/reset-password/{tenantId}": {
+      "put": {
+        "tags": [
+          "maintenance"
+        ],
+        "description": "Reset the password for an existing tenant within the middleware.",
+        "operationId": "maintenance.tenant.reset-password",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "description": "The tenant ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "In case the password for the tenant was reset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantRegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "In case of a parameter validation exception.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParameterValidationProblemResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "In case of an unknown error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/unsecured/api/maintenance/endpoint/resend/capabilities-and-subscriptions/{externalEndpointId}": {
       "put": {
         "tags": [
@@ -206,7 +258,7 @@
         ]
       }
     },
-    "/secured/api/application/supported-technical-message-types/{applicationId}": {
+    "/secured/api/application/supported-technical-message-types/{internalApplicationId}": {
       "put": {
         "tags": [
           "application management"
@@ -215,9 +267,9 @@
         "operationId": "application.define-technical-message-types",
         "parameters": [
           {
-            "name": "applicationId",
+            "name": "internalApplicationId",
             "in": "path",
-            "description": "The ID of the application.",
+            "description": "The internal ID of the application.",
             "required": true,
             "schema": {
               "type": "string"
@@ -266,7 +318,7 @@
         ]
       }
     },
-    "/secured/api/application/router-device/{applicationId}": {
+    "/secured/api/application/router-device/{internalApplicationId}": {
       "put": {
         "tags": [
           "application management"
@@ -275,9 +327,9 @@
         "operationId": "application.add-router-device",
         "parameters": [
           {
-            "name": "applicationId",
+            "name": "internalApplicationId",
             "in": "path",
-            "description": "The ID of the application.",
+            "description": "The internal ID of the application.",
             "required": true,
             "schema": {
               "type": "string"
@@ -377,7 +429,7 @@
         }
       }
     },
-    "/secured/api/telemetry-platform/{endpointId}/virtual": {
+    "/secured/api/telemetry-platform/{externalEndpointId}/virtual": {
       "post": {
         "tags": [
           "telemetry platform management"
@@ -386,9 +438,9 @@
         "operationId": "telemetry-platform.onboard.virtual",
         "parameters": [
           {
-            "name": "endpointId",
+            "name": "externalEndpointId",
             "in": "path",
-            "description": "The ID of the existing endpoint.",
+            "description": "The external ID of the existing endpoint.",
             "required": true,
             "schema": {
               "type": "string"
@@ -447,9 +499,9 @@
         "operationId": "telemetry-platform.revoke.virtual",
         "parameters": [
           {
-            "name": "endpointId",
+            "name": "externalEndpointId",
             "in": "path",
-            "description": "The ID of the existing endpoint.",
+            "description": "The external ID of the existing endpoint.",
             "required": true,
             "schema": {
               "type": "string"
@@ -1594,7 +1646,7 @@
         ]
       }
     },
-    "/unsecured/api/telemetry-platform/{applicationId}/{externalEndpointId}": {
+    "/unsecured/api/telemetry-platform/{internalApplicationId}/{externalEndpointId}": {
       "get": {
         "tags": [
           "telemetry platform management"
@@ -1603,9 +1655,9 @@
         "operationId": "telemetry-platform.auth-url",
         "parameters": [
           {
-            "name": "applicationId",
+            "name": "internalApplicationId",
             "in": "path",
-            "description": "The ID of the application.",
+            "description": "The internal ID of the application.",
             "required": true,
             "schema": {
               "type": "string"
@@ -1701,7 +1753,7 @@
         }
       }
     },
-    "/unsecured/api/farming-software/{applicationId}/{externalEndpointId}": {
+    "/unsecured/api/farming-software/{internalApplicationId}/{externalEndpointId}": {
       "get": {
         "tags": [
           "farming software management"
@@ -1710,9 +1762,9 @@
         "operationId": "onboard.farming-software.auth-url",
         "parameters": [
           {
-            "name": "applicationId",
+            "name": "internalApplicationId",
             "in": "path",
-            "description": "The ID of the application.",
+            "description": "The internal ID of the application.",
             "required": true,
             "schema": {
               "type": "string"
@@ -2086,7 +2138,7 @@
         ]
       }
     },
-    "/secured/api/application/{applicationId}": {
+    "/secured/api/application/{internalApplicationId}": {
       "get": {
         "tags": [
           "application management"
@@ -2095,9 +2147,9 @@
         "operationId": "application.find",
         "parameters": [
           {
-            "name": "applicationId",
+            "name": "internalApplicationId",
             "in": "path",
-            "description": "The ID of the application",
+            "description": "The internal ID of the application",
             "required": true,
             "schema": {
               "type": "string"
@@ -2143,7 +2195,7 @@
         ]
       }
     },
-    "/secured/api/application/{applicationId}/endpoints": {
+    "/secured/api/application/{internalApplicationId}/endpoints": {
       "get": {
         "tags": [
           "application management"
@@ -2152,9 +2204,9 @@
         "operationId": "application.endpoints",
         "parameters": [
           {
-            "name": "applicationId",
+            "name": "internalApplicationId",
             "in": "path",
-            "description": "The ID of the application.",
+            "description": "The internal ID of the application.",
             "required": true,
             "schema": {
               "type": "string"
@@ -2200,7 +2252,7 @@
         ]
       }
     },
-    "/secured/api/application/status/{applicationId}": {
+    "/secured/api/application/status/{internalApplicationId}": {
       "get": {
         "tags": [
           "application management"
@@ -2209,9 +2261,9 @@
         "operationId": "application.status",
         "parameters": [
           {
-            "name": "applicationId",
+            "name": "internalApplicationId",
             "in": "path",
-            "description": "The ID of the application.",
+            "description": "The internal ID of the application.",
             "required": true,
             "schema": {
               "type": "string"
@@ -2604,6 +2656,25 @@
   },
   "components": {
     "schemas": {
+      "TenantRegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "The timestamp (UTC) of the response.",
+            "format": "date-time"
+          },
+          "tenantId": {
+            "type": "string",
+            "description": "Internal ID of the tenant."
+          },
+          "accessToken": {
+            "type": "string",
+            "description": "Access token for API usage. Will be shown only once, therefore better save this one."
+          }
+        },
+        "description": "The response after the tenant was registered."
+      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -2623,25 +2694,10 @@
         },
         "description": "Generic error response to map the internal errors and provide clean API description."
       },
-      "ObjectError": {
+      "ParameterValidationError": {
         "type": "object",
         "properties": {
-          "codes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "arguments": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "defaultMessage": {
-            "type": "string"
-          },
-          "objectName": {
+          "field": {
             "type": "string"
           },
           "code": {
@@ -2662,7 +2718,7 @@
             "type": "array",
             "description": "The validation errors.",
             "items": {
-              "$ref": "#/components/schemas/ObjectError"
+              "$ref": "#/components/schemas/ParameterValidationError"
             }
           }
         },
@@ -2691,68 +2747,17 @@
           "versionId": {
             "type": "string",
             "description": "The version of the application. Each agrirouter© version creates a new application in the middleware."
-          }
-        },
-        "description": "A container holding the basic representation of an application."
-      },
-      "UpdateApplicationResponse": {
-        "type": "object",
-        "properties": {
-          "timestamp": {
-            "type": "string",
-            "description": "The timestamp (UTC) of the response.",
-            "format": "date-time"
           },
-          "application": {
-            "$ref": "#/components/schemas/ApplicationDto"
-          }
-        },
-        "description": "The response after an application has been successfully updated."
-      },
-      "UpdateApplicationRequest": {
-        "required": [
-          "internalApplicationId"
-        ],
-        "type": "object",
-        "properties": {
-          "internalApplicationId": {
-            "type": "string",
-            "description": "The internal ID of the application."
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the application."
-          },
-          "privateKey": {
-            "type": "string",
-            "description": "The private key of the application. Only needed if the application is an instance of a farming software or telemetry platform."
-          },
-          "publicKey": {
-            "type": "string",
-            "description": "The public key of the application. Only needed if the application is an instance of a farming software or telemetry platform."
-          },
-          "redirectUrl": {
-            "type": "string",
-            "description": "The redirect URL for the application. To configure a custom redirect URL that matches the location of the service."
-          }
-        },
-        "description": "The request parameters to update the existing application."
-      },
-      "AddSupportedTechnicalMessageTypeRequest": {
-        "required": [
-          "supportedTechnicalMessageTypes"
-        ],
-        "type": "object",
-        "properties": {
           "supportedTechnicalMessageTypes": {
+            "uniqueItems": true,
             "type": "array",
-            "description": "The list of supported technical message types.",
+            "description": "The supported technical message types for this version of the application.",
             "items": {
               "$ref": "#/components/schemas/SupportedTechnicalMessageTypeDto"
             }
           }
         },
-        "description": "The container holding the parameters to add the supported technical messages types."
+        "description": "A container holding the basic representation of an application."
       },
       "SupportedTechnicalMessageTypeDto": {
         "type": "object",
@@ -2786,7 +2791,66 @@
             ]
           }
         },
-        "description": "Representation of a technical message type to add."
+        "description": "A container holding the basic representation of a supported technical message type."
+      },
+      "UpdateApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "The timestamp (UTC) of the response.",
+            "format": "date-time"
+          },
+          "application": {
+            "$ref": "#/components/schemas/ApplicationDto"
+          }
+        },
+        "description": "The response after an application has been successfully updated."
+      },
+      "UpdateApplicationRequest": {
+        "required": [
+          "internalApplicationId"
+        ],
+        "type": "object",
+        "properties": {
+          "internalApplicationId": {
+            "type": "string",
+            "description": "The internal ID of the application."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the application."
+          },
+          "base64EncodedPrivateKey": {
+            "type": "string",
+            "description": "The private key of the application. Only needed if the application is an instance of a farming software or telemetry platform. The private key has to be Base64 encoded."
+          },
+          "base64EncodedPublicKey": {
+            "type": "string",
+            "description": "The public key of the application. Only needed if the application is an instance of a farming software or telemetry platform. The public key has to be Base64 encoded."
+          },
+          "redirectUrl": {
+            "type": "string",
+            "description": "The redirect URL for the application. To configure a custom redirect URL that matches the location of the service."
+          }
+        },
+        "description": "The request parameters to update the existing application."
+      },
+      "AddSupportedTechnicalMessageTypeRequest": {
+        "required": [
+          "supportedTechnicalMessageTypes"
+        ],
+        "type": "object",
+        "properties": {
+          "supportedTechnicalMessageTypes": {
+            "type": "array",
+            "description": "The list of supported technical message types.",
+            "items": {
+              "$ref": "#/components/schemas/SupportedTechnicalMessageTypeDto"
+            }
+          }
+        },
+        "description": "The container holding the parameters to add the supported technical messages types."
       },
       "AddRouterDeviceRequest": {
         "required": [
@@ -2870,25 +2934,6 @@
           }
         },
         "description": "A router device from the AR."
-      },
-      "TenantRegistrationResponse": {
-        "type": "object",
-        "properties": {
-          "timestamp": {
-            "type": "string",
-            "description": "The timestamp (UTC) of the response.",
-            "format": "date-time"
-          },
-          "tenantId": {
-            "type": "string",
-            "description": "Internal ID of the tenant."
-          },
-          "accessToken": {
-            "type": "string",
-            "description": "Access token for API usage. Will be shown only once, therefore better save this one."
-          }
-        },
-        "description": "The response after the tenant was registered."
       },
       "TenantRegistrationRequest": {
         "required": [
@@ -3268,9 +3313,9 @@
         "required": [
           "applicationId",
           "applicationType",
+          "base64EncodedPrivateKey",
+          "base64EncodedPublicKey",
           "name",
-          "privateKey",
-          "publicKey",
           "versionId"
         ],
         "type": "object",
@@ -3281,19 +3326,19 @@
           },
           "applicationId": {
             "type": "string",
-            "description": "The ID of the application."
+            "description": "The agrirouter© ID of the application."
           },
           "versionId": {
             "type": "string",
             "description": "The version of the application. Each agrirouter© version creates a new application in the middleware."
           },
-          "privateKey": {
+          "base64EncodedPrivateKey": {
             "type": "string",
-            "description": "The private key of the application. Only needed if the application is an instance of a farming software or telemetry platform."
+            "description": "The private key of the application. Only needed if the application is an instance of a farming software or telemetry platform. The private key has to be Base64 encoded."
           },
-          "publicKey": {
+          "base64EncodedPublicKey": {
             "type": "string",
-            "description": "The public key of the application. Only needed if the application is an instance of a farming software or telemetry platform."
+            "description": "The public key of the application. Only needed if the application is an instance of a farming software or telemetry platform. The public key has to be Base64 encoded."
           },
           "applicationType": {
             "type": "string",

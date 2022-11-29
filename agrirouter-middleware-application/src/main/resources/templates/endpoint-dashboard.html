@@ -156,7 +156,7 @@
             </div>
         </div>
     </div>
-    <div class="mdl-grid" th:if="${errors.size > 0}">
+    <div class="mdl-grid" style="width: 100%" th:if="${errors.size > 0}">
         <div class="mdl-cell mdl-cell--12-col mdl-typography--text-center">
             <div class="mdl-card mdl-shadow--2dp mdl-card--expand">
                 <div class="mdl-card__title">
@@ -178,7 +178,7 @@
                         </thead>
                         <tbody>
                         <tr th:each="error: ${errors}">
-                            <td th:text="${error.timestamp}"></td>
+                            <td th:text="${#dates.format(error.timestamp * 1000,'dd.MM.yyyy HH:mm')}"></td>
                             <td th:text="${error.responseCode}"></td>
                             <td th:text="${error.responseType}"></td>
                             <td th:text="${error.messageId}"></td>
@@ -186,6 +186,14 @@
                         </tr>
                         </tbody>
                     </table>
+                </div>
+                <div class="mdl-card__actions mdl-card--border mdl-typography--text-left">
+                    <form action="#"
+                          th:action="@{/endpoint-dashboard/clear-errors(externalEndpointId=${endpoint.externalEndpointId})}"
+                          method="post">
+                        <input type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                               th:value="#{endpoint.clear-all}"/>
+                    </form>
                 </div>
             </div>
         </div>
@@ -209,11 +217,19 @@
                         </thead>
                         <tbody>
                         <tr th:each="connectionError: ${Connectionserrors}">
-                            <td th:text="${error.pointInTime}"></td>
+                            <td th:text="${#dates.format(error.pointInTime * 1000,'dd.MM.yyyy HH:mm')}"></td>
                             <td th:text="${error.errorMessage}"></td>
                         </tr>
                         </tbody>
                     </table>
+                </div>
+                <div class="mdl-card__actions mdl-card--border mdl-typography--text-left">
+                    <form action="#"
+                          th:action="@{/endpoint-dashboard/clear-connection-errors(externalEndpointId=${endpoint.externalEndpointId})}"
+                          method="post">
+                        <input type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                               th:value="#{endpoint.clear-all}"/>
+                    </form>
                 </div>
             </div>
         </div>
@@ -241,7 +257,7 @@
                         </thead>
                         <tbody>
                         <tr th:each="cloudOnboardingFailure: ${cloudOnboardingFailures}">
-                            <td th:text="${cloudOnboardingFailure.timestamp}"></td>
+                            <td th:text="${#dates.format(cloudOnboardingFailure.timestamp * 1000,'dd.MM.yyyy HH:mm')}"></td>
                             <td th:text="${cloudOnboardingFailure.virtualExternalEndpointId}"></td>
                             <td th:text="${cloudOnboardingFailure.errorCode}"></td>
                             <td th:text="${cloudOnboardingFailure.errorMessage}"></td>
@@ -275,13 +291,21 @@
                         </thead>
                         <tbody>
                         <tr th:each="messageWaitingForAcknowledgement: ${messagesWaitingForAcknowledgement}">
-                            <td th:text="${messageWaitingForAcknowledgement.created}"></td>
+                            <td th:text="${#dates.format(messageWaitingForAcknowledgement.created * 1000,'dd.MM.yyyy HH:mm')}"></td>
                             <td th:text="${messageWaitingForAcknowledgement.agrirouterEndpointId}"></td>
                             <td th:text="${messageWaitingForAcknowledgement.messageId}"></td>
                             <td th:text="${messageWaitingForAcknowledgement.technicalMessageType}"></td>
                         </tr>
                         </tbody>
                     </table>
+                </div>
+                <div class="mdl-card__actions mdl-card--border mdl-typography--text-left">
+                    <form action="#"
+                          th:action="@{/endpoint-dashboard/clear-messages-waiting-for-ack(externalEndpointId=${endpoint.externalEndpointId})}"
+                          method="post">
+                        <input type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                               th:value="#{endpoint.clear-all}"/>
+                    </form>
                 </div>
             </div>
         </div>
@@ -308,11 +332,55 @@
                         </thead>
                         <tbody>
                         <tr th:each="warning: ${warnings}">
-                            <td th:text="${warning.timestamp}"></td>
+                            <td th:text="${#dates.format(warning.timestamp * 1000,'dd.MM.yyyy HH:mm')}"></td>
                             <td th:text="${warning.responseCode}"></td>
                             <td th:text="${warning.responseType}"></td>
                             <td th:text="${warning.messageId}"></td>
                             <td th:text="${warning.message}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mdl-card__actions mdl-card--border mdl-typography--text-left">
+                    <form action="#"
+                          th:action="@{/endpoint-dashboard/clear-warnings(externalEndpointId=${endpoint.externalEndpointId})}"
+                          method="post">
+                        <input type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                               th:value="#{endpoint.clear-all}"/>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mdl-grid" th:if="${pendingDeliveryTokens.size > 0}">
+        <div class="mdl-cell mdl-cell--12-col mdl-typography--text-center">
+            <div class="mdl-card mdl-shadow--2dp mdl-card--expand">
+                <div class="mdl-card__title">
+                    <h2 class="mdl-card__title-text"
+                        th:text="#{domain.endpoint.pending-delivery-tokens}"></h2>
+                </div>
+                <div class="mdl-card__supporting-text">
+                    <table class="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp">
+                        <thead>
+                        <tr>
+                            <th th:text="#{domain.delivery-token.message-id}"></th>
+                            <th class="mdl-data-table__cell--non-numeric"
+                                th:text="#{domain.delivery-token.granted-qos}"></th>
+                            <th class="mdl-data-table__cell--non-numeric"
+                                th:text="#{domain.delivery-token.topics}"></th>
+                            <th class="mdl-data-table__cell--non-numeric"
+                                th:text="#{domain.delivery-token.complete}"></th>
+                            <th class="mdl-data-table__cell--non-numeric"
+                                th:text="#{domain.delivery-token.message-qos}"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="pendingDeliveryToken: ${pendingDeliveryTokens}">
+                            <td th:text="${pendingDeliveryToken.messageId}"></td>
+                            <td th:text="${pendingDeliveryToken.grantedQos}"></td>
+                            <td th:text="${pendingDeliveryToken.topics}"></td>
+                            <td th:text="${pendingDeliveryToken.complete}"></td>
+                            <td th:text="${pendingDeliveryToken.messageQos}"></td>
                         </tr>
                         </tbody>
                     </table>
