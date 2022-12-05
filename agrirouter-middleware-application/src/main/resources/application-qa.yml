@@ -1,6 +1,6 @@
 logging:
   level:
-    root: warn
+    root: debug
     org.hibernate.SQL: off
     org.hibernate.type.descriptor.sql: off
     org.springframework.web.filter.CommonsRequestLoggingFilter: off
