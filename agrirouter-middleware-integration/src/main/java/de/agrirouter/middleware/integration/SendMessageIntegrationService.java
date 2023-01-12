@@ -11,16 +11,17 @@ import com.dke.data.agrirouter.impl.common.MessageIdService;
 import com.dke.data.agrirouter.impl.messaging.SequenceNumberService;
 import com.dke.data.agrirouter.impl.messaging.mqtt.SendMessageServiceImpl;
 import de.agrirouter.middleware.api.errorhandling.BusinessException;
+import de.agrirouter.middleware.api.errorhandling.CriticalBusinessException;
 import de.agrirouter.middleware.api.errorhandling.error.ErrorMessageFactory;
 import de.agrirouter.middleware.integration.ack.DynamicMessageProperties;
 import de.agrirouter.middleware.integration.ack.MessageWaitingForAcknowledgement;
 import de.agrirouter.middleware.integration.ack.MessageWaitingForAcknowledgementService;
 import de.agrirouter.middleware.integration.mqtt.MqttClientManagementService;
 import de.agrirouter.middleware.integration.parameters.MessagingIntegrationParameters;
+import de.agrirouter.middleware.integration.status.AgrirouterStatusIntegrationService;
 import de.agrirouter.middleware.persistence.EndpointRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -28,24 +29,27 @@ import java.util.ArrayList;
 /**
  * Messaging service for sending or publishing messages.
  */
+@Slf4j
 @Service
 public class SendMessageIntegrationService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(SendMessageIntegrationService.class);
 
     private final MqttClientManagementService mqttClientManagementService;
     private final EncodeMessageService encodeMessageService;
     private final MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService;
     private final EndpointRepository endpointRepository;
 
+    private final AgrirouterStatusIntegrationService agrirouterStatusIntegrationService;
+
     public SendMessageIntegrationService(MqttClientManagementService mqttClientManagementService,
                                          EncodeMessageService encodeMessageService,
                                          MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService,
-                                         EndpointRepository endpointRepository) {
+                                         EndpointRepository endpointRepository,
+                                         AgrirouterStatusIntegrationService agrirouterStatusIntegrationService) {
         this.mqttClientManagementService = mqttClientManagementService;
         this.encodeMessageService = encodeMessageService;
         this.messageWaitingForAcknowledgementService = messageWaitingForAcknowledgementService;
         this.endpointRepository = endpointRepository;
+        this.agrirouterStatusIntegrationService = agrirouterStatusIntegrationService;
     }
 
     /**
@@ -53,7 +57,8 @@ public class SendMessageIntegrationService {
      *
      * @param messagingIntegrationParameters -
      */
-    public void publish(MessagingIntegrationParameters messagingIntegrationParameters) {
+    public void publish(MessagingIntegrationParameters messagingIntegrationParameters) throws CriticalBusinessException {
+        agrirouterStatusIntegrationService.checkCurrentStatus();
         final var optionalEndpoint = endpointRepository.findByExternalEndpointIdAndIgnoreDeactivated(messagingIntegrationParameters.externalEndpointId());
         if (optionalEndpoint.isPresent()) {
             final var endpoint = optionalEndpoint.get();
@@ -77,7 +82,7 @@ public class SendMessageIntegrationService {
             }
             sendMessageService.send(sendMessageParameters);
 
-            LOGGER.debug("Saving message with ID '{}'  waiting for ACK.", messageHeaderParameters.getApplicationMessageId());
+            log.debug("Saving message with ID '{}'  waiting for ACK.", messageHeaderParameters.getApplicationMessageId());
             MessageWaitingForAcknowledgement messageWaitingForAcknowledgement = new MessageWaitingForAcknowledgement();
             messageWaitingForAcknowledgement.setAgrirouterEndpointId(endpoint.getAgrirouterEndpointId());
             messageWaitingForAcknowledgement.setMessageId(messageHeaderParameters.getApplicationMessageId());
