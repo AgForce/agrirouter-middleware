@@ -14,6 +14,7 @@ services:
       - MYSQL_SCHEMA=${MYSQL_DATABASE:-agriroutermiddleware}
       - MYSQL_USER=${MYSQL_USER:-agriroutermiddleware}
       - SPRING_PROFILES_ACTIVE=qa,maintenance
+      - MESSAGE_CACHE_DATA_DIRECTORY=${MESSAGE_CACHE_DATA_DIRECTORY:-message-cache}
     ports:
       - "${BIND_ADDRESS:-127.0.0.1:8080}:8080"
     networks:
