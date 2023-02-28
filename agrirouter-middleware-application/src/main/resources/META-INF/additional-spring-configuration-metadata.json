@@ -11,11 +11,6 @@
       "description": "The interval the fetch message service waits between one and another try to fetch a message from the AR."
     },
     {
-      "name": "app.scheduled.connection-check",
-      "type": "java.lang.String",
-      "description": "The interval for the connection check, has to be a valid CRON expression."
-    },
-    {
       "name": "app.scheduled.fetching-and-confirming-existing-messages",
       "type": "java.lang.String",
       "description": "The interval for fetching and confirming existing messages, has to be a valid CRON expression."
@@ -69,6 +64,16 @@
       "name": "app.cache.message-cache.data-directory",
       "type": "java.lang.String",
       "description": "The data directory for the message cache."
+    },
+    {
+      "name": "app.version",
+      "type": "java.lang.String",
+      "description": "Version of the application."
+    },
+    {
+      "name": "app.build",
+      "type": "java.lang.String",
+      "description": "Build of the application."
     }
   ]
 }

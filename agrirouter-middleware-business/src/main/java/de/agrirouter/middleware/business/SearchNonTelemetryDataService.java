@@ -3,6 +3,7 @@ package de.agrirouter.middleware.business;
 import com.dke.data.agrirouter.api.enums.ContentMessageType;
 import de.agrirouter.middleware.api.errorhandling.BusinessException;
 import de.agrirouter.middleware.api.errorhandling.error.ErrorMessageFactory;
+import de.agrirouter.middleware.business.dto.MessageStatistics;
 import de.agrirouter.middleware.business.parameters.SearchNonTelemetryDataParameters;
 import de.agrirouter.middleware.domain.ContentMessageMetadata;
 import de.agrirouter.middleware.persistence.ContentMessageRepository;
@@ -142,5 +143,65 @@ public class SearchNonTelemetryDataService {
                 throw new BusinessException(ErrorMessageFactory.couldNotAssembleChunks());
             }
         }
+    }
+
+    /**
+     * Fetch the message statistics for the endpoint.
+     *
+     * @param externalEndpointId The external ID of the endpoint.
+     * @return The statistics.
+     */
+    public MessageStatistics getMessageStatistics(String externalEndpointId) {
+        var messageStatistics = new MessageStatistics();
+        messageStatistics.setExternalEndpointId(externalEndpointId);
+        final var optionalEndpoint = endpointRepository.findByExternalEndpointId(externalEndpointId);
+        if (optionalEndpoint.isPresent()) {
+            var messageCountForTechnicalMessageTypes = contentMessageRepository.countMessagesGroupedByTechnicalMessageType(optionalEndpoint.get().getAgrirouterEndpointId());
+            messageCountForTechnicalMessageTypes.forEach(messageCountForTechnicalMessageType -> {
+                        log.debug("Found {} messages for technical message type {} for the sender {}.",
+                                messageCountForTechnicalMessageType.getNumberOfMessages(),
+                                messageCountForTechnicalMessageType.getTechnicalMessageType(),
+                                messageCountForTechnicalMessageType.getSenderId());
+                        messageStatistics.addMessageStatisticEntry(messageCountForTechnicalMessageType.getSenderId(),
+                                new MessageStatistics.MessageStatistic.Entry(messageCountForTechnicalMessageType.getTechnicalMessageType(), messageCountForTechnicalMessageType.getNumberOfMessages()));
+                    }
+            );
+        } else {
+            throw new BusinessException(ErrorMessageFactory.couldNotFindEndpoint());
+        }
+        return messageStatistics;
+    }
+
+    /**
+     * Delete the message with all existing chunks.
+     *
+     * @param externalEndpointId The external ID of the endpoint.
+     * @param messageId          The ID of the message.
+     */
+    public void delete(String externalEndpointId, String messageId) {
+        final var optionalEndpoint = endpointRepository.findByExternalEndpointId(externalEndpointId);
+        if (optionalEndpoint.isPresent()) {
+            final var optionalContentMessage = contentMessageRepository.findFirstByAgrirouterEndpointIdAndContentMessageMetadataMessageId(optionalEndpoint.get().getAgrirouterEndpointId(), messageId);
+            if (optionalContentMessage.isPresent()) {
+                final var contentMessage = optionalContentMessage.get();
+                if (contentMessage.getContentMessageMetadata().getTotalChunks() > 1) {
+                    log.debug("Looks like we have multiple chunks for the content message. Assembling the message content first. There are {} chunks in total.", contentMessage.getContentMessageMetadata().getTotalChunks());
+                    deleteChunkedMessageContent(optionalEndpoint.get().getAgrirouterEndpointId(), contentMessage.getContentMessageMetadata().getChunkContextId());
+                } else {
+                    log.debug("This is a single message, therefore nothing else to do.");
+                    var i = contentMessageRepository.deleteByAgrirouterEndpointIdAndContentMessageMetadataMessageId(optionalEndpoint.get().getAgrirouterEndpointId(), messageId);
+                    log.debug("Deleted {} content message, no chunks were harmed.", i);
+                }
+            } else {
+                throw new BusinessException(ErrorMessageFactory.couldNotFindContentMessage());
+            }
+        } else {
+            throw new BusinessException(ErrorMessageFactory.couldNotFindEndpoint());
+        }
+    }
+
+    private void deleteChunkedMessageContent(String agrirouterEndpointId, String chunkContextId) {
+        var nrOfContentMessages = contentMessageRepository.deleteByAgrirouterEndpointIdAndContentMessageMetadataChunkContextId(agrirouterEndpointId, chunkContextId);
+        log.debug("Deleted {} content message chunks.", nrOfContentMessages);
     }
 }

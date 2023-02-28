@@ -21,13 +21,10 @@ spring:
 logging:
   level:
     root: info
-    org.hibernate.SQL: off
-    org.hibernate.type.descriptor.sql: off
-    org.springframework.web.filter.CommonsRequestLoggingFilter: off
-    de.agrirouter.middleware: trace
-    com.dke.data.agrirouter: trace
 
 app:
+  version: '@project.version@'
+  build: '@maven.build.timestamp@'
   agrirouter:
     status:
       url: https://status.agrirouter.com/api/v2/components.json
@@ -35,13 +32,12 @@ app:
     max-tries: 5
     interval: 1000
   scheduled:
-    connection-check: "0 */30 * * * *"
     fetching-and-confirming-existing-messages: "0 */15 * * * *"
     status-logging: "0 */15 * * * *"
-    recipient-query: "0 */30 * * * *"
+    recipient-query: "0 */15 * * * *"
     empty-message-cache: "0 */30 * * * *"
     message-waiting-for-ack-removal: "0 0 0 * * *"
-    statuspage-check-interval: "*/15 * * * * *"
+    statuspage-check-interval: "*/30 * * * * *"
   branding:
     favicon: "/img/favicon.ico"
   cache:
