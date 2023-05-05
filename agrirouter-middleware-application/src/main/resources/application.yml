@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:mariadb://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_SCHEMA}?useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mariadb://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_SCHEMA}?useUnicode=true&characterEncoding=UTF-8${MYSQL_ADDITIONAL_OPTIONS}
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
   data:
@@ -14,15 +14,16 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+    open-in-view: false
+
   flyway:
     baseline-on-migrate: true
     enabled: true
+    locations: classpath:flyway/migrations/all-versions,classpath:flyway/migrations/gt-10.5
 
 logging:
   level:
     root: info
-agrirouter:
-
 
 app:
   version: '@project.version@'
