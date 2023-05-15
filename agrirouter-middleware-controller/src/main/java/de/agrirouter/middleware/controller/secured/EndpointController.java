@@ -7,6 +7,7 @@ import de.agrirouter.middleware.business.ApplicationService;
 import de.agrirouter.middleware.business.EndpointService;
 import de.agrirouter.middleware.business.cache.cloud.CloudOnboardingFailureCache;
 import de.agrirouter.middleware.business.cache.messaging.MessageCache;
+import de.agrirouter.middleware.controller.SecuredApiController;
 import de.agrirouter.middleware.controller.dto.request.EndpointHealthStatusRequest;
 import de.agrirouter.middleware.controller.dto.request.EndpointStatusRequest;
 import de.agrirouter.middleware.controller.dto.response.*;
@@ -613,17 +614,17 @@ public class EndpointController implements SecuredApiController {
         if (agrirouterStatusIntegrationService.isOperational()) {
             try {
                 endpointService.findByExternalEndpointId(externalEndpointId);
+                if (endpointService.isHealthy(externalEndpointId)) {
+                    return ResponseEntity.status(HttpStatus.OK).build();
+                } else {
+                    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+                }
             } catch (BusinessException e) {
                 if (e.getErrorMessage().getKey().equals(ErrorKey.ENDPOINT_NOT_FOUND)) {
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
                 } else {
                     throw e;
                 }
-            }
-            if (endpointService.isHealthy(externalEndpointId)) {
-                return ResponseEntity.status(HttpStatus.OK).build();
-            } else {
-                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
             }
         } else {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
@@ -748,17 +749,11 @@ public class EndpointController implements SecuredApiController {
             }
     )
     public ResponseEntity<EndpointRecipientsResponse> recipients(@Parameter(description = "The external endpoint id.", required = true) @PathVariable String externalEndpointId) {
-        final var optionalEndpoint = endpointService.findByExternalEndpointId(externalEndpointId);
-        if (optionalEndpoint.isPresent()) {
-            final var endpoint = optionalEndpoint.get();
-            final var messageRecipientDtos = endpoint.getMessageRecipients()
-                    .stream()
-                    .map(messageRecipient -> modelMapper.map(messageRecipient, MessageRecipientDto.class))
-                    .toList();
-            return ResponseEntity.ok(new EndpointRecipientsResponse(messageRecipientDtos));
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        final var messageRecipientDtos = endpointService.getMessageRecipients(externalEndpointId)
+                .stream()
+                .map(messageRecipient -> modelMapper.map(messageRecipient, MessageRecipientDto.class))
+                .toList();
+        return ResponseEntity.ok(new EndpointRecipientsResponse(messageRecipientDtos));
     }
 
     @GetMapping(

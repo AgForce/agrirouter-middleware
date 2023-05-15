@@ -1,19 +1,16 @@
-package de.agrirouter.middleware.domain;
+package de.agrirouter.middleware.business.dto.recipients;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
-
-import javax.persistence.Entity;
 
 /**
  * One of the message recipients for the endpoint.
  */
-@Data
-@Entity
+@Getter
+@Setter
 @ToString
-@EqualsAndHashCode(callSuper = true)
-public class MessageRecipient extends BaseEntity {
+public class MessageRecipient {
 
     /**
      * The agrirouter© endpoint ID.
