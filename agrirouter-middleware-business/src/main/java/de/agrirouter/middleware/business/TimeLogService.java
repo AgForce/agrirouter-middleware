@@ -23,10 +23,10 @@ import de.agrirouter.middleware.domain.DeviceDescription;
 import de.agrirouter.middleware.domain.TimeLog;
 import de.agrirouter.middleware.integration.SendMessageIntegrationService;
 import de.agrirouter.middleware.integration.parameters.MessagingIntegrationParameters;
-import de.agrirouter.middleware.persistence.EndpointRepository;
 import de.agrirouter.middleware.persistence.TimeLogRepository;
 import efdi.GrpcEfdi;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
 import org.springframework.stereotype.Service;
 
@@ -45,7 +45,7 @@ public class TimeLogService {
     public static final int TIME_LOG_PERIOD_OFFSET = 300_000;
 
     private final TimeLogRepository timeLogRepository;
-    private final EndpointRepository endpointRepository;
+    private final EndpointService endpointService;
     private final DeviceDescriptionService deviceDescriptionService;
     private final SendMessageIntegrationService sendMessageIntegrationService;
     private final DeviceService deviceService;
@@ -53,13 +53,13 @@ public class TimeLogService {
     private final MessageCache messageCache;
 
     public TimeLogService(TimeLogRepository timeLogRepository,
-                          EndpointRepository endpointRepository,
+                          EndpointService endpointService,
                           DeviceDescriptionService deviceDescriptionService,
                           SendMessageIntegrationService sendMessageIntegrationService,
                           DeviceService deviceService,
                           BusinessOperationLogService businessOperationLogService, MessageCache messageCache) {
         this.timeLogRepository = timeLogRepository;
-        this.endpointRepository = endpointRepository;
+        this.endpointService = endpointService;
         this.deviceDescriptionService = deviceDescriptionService;
         this.sendMessageIntegrationService = sendMessageIntegrationService;
         this.deviceService = deviceService;
@@ -81,7 +81,8 @@ public class TimeLogService {
                 asByteString(publishTimeLogParameters.getBase64EncodedTimeLog()),
                 publishTimeLogParameters.getTeamSetContextId());
         try {
-            sendMessageIntegrationService.publish(messagingIntegrationParameters);
+            var endpoint = endpointService.findByExternalEndpointId(publishTimeLogParameters.getExternalEndpointId());
+            sendMessageIntegrationService.publish(endpoint, messagingIntegrationParameters);
             businessOperationLogService.log(new EndpointLogInformation(publishTimeLogParameters.getExternalEndpointId(), NA), "Time log has been published");
         } catch (CriticalBusinessException e) {
             log.debug("Could not publish data. There was a critical business exception. {}", e.getErrorMessage());
@@ -107,9 +108,8 @@ public class TimeLogService {
         log.debug("Received a time log for the following team set '{}'.", contentMessage.getContentMessageMetadata().getTeamSetContextId());
         final var optionalDocument = convert(contentMessage.getMessageContent());
         if (optionalDocument.isPresent()) {
-            final var optionalEndpoint = endpointRepository.findByAgrirouterEndpointId(contentMessage.getContentMessageMetadata().getReceiverId());
-            if (optionalEndpoint.isPresent()) {
-                final var endpoint = optionalEndpoint.get();
+            try {
+                final var endpoint = endpointService.findByAgrirouterEndpointId(contentMessage.getContentMessageMetadata().getReceiverId());
                 final var timeLog = new TimeLog();
                 timeLog.setAgrirouterEndpointId(contentMessage.getAgrirouterEndpointId());
                 timeLog.setMessageId(contentMessage.getContentMessageMetadata().getMessageId());
@@ -121,8 +121,8 @@ public class TimeLogService {
                 timeLog.setDocument(optionalDocument.get());
                 timeLogRepository.save(timeLog);
                 businessOperationLogService.log(new EndpointLogInformation(endpoint.getExternalEndpointId(), endpoint.getAgrirouterEndpointId()), "Time log has been received and saved.");
-            } else {
-                log.error(ErrorMessageFactory.couldNotFindEndpoint().asLogMessage());
+            } catch (BusinessException e) {
+                log.error(e.getErrorMessage().asLogMessage());
             }
         } else {
             log.error(ErrorMessageFactory.couldNotParseTimeLog().asLogMessage());
@@ -174,7 +174,11 @@ public class TimeLogService {
     public List<TimeLog> getMessagesForTimeLogPeriod(MessagesForTimeLogPeriodParameters messagesForTimeLogPeriodParameters) {
         List<TimeLog> timeLogs;
         if (messagesForTimeLogPeriodParameters.shouldFilterByTime()) {
-            timeLogs = timeLogRepository.findAllByTimestampBetween(messagesForTimeLogPeriodParameters.getSendFromOrDefault(), messagesForTimeLogPeriodParameters.getSendToOrDefault());
+            if (StringUtils.isNotBlank(messagesForTimeLogPeriodParameters.getTeamSetContextId())) {
+                timeLogs = timeLogRepository.findAllByTimestampBetweenAndTeamSetContextIdEqualsIgnoreCase(messagesForTimeLogPeriodParameters.getSendFromOrDefault(), messagesForTimeLogPeriodParameters.getSendToOrDefault(), messagesForTimeLogPeriodParameters.getTeamSetContextId());
+            } else {
+                timeLogs = timeLogRepository.findAllByTimestampBetween(messagesForTimeLogPeriodParameters.getSendFromOrDefault(), messagesForTimeLogPeriodParameters.getSendToOrDefault());
+            }
             if (null != messagesForTimeLogPeriodParameters.getDdisToList() && !messagesForTimeLogPeriodParameters.getDdisToList().isEmpty()) {
                 timeLogs.forEach(timeLog -> {
                     final var document = timeLog.getDocument();
@@ -244,9 +248,9 @@ public class TimeLogService {
         teamSetContextIds.forEach(teamSetContextId -> {
             final List<TimeLog> timeLogs;
             if (searchTimeLogPeriodsParameters.shouldFilterByTime()) {
-                timeLogs = timeLogRepository.findForTeamSetContextIdAndTimestampBetween(teamSetContextId, searchTimeLogPeriodsParameters.getSendFromOrDefault(), searchTimeLogPeriodsParameters.getSendToOrDefault());
+                timeLogs = timeLogRepository.findAllByTimestampBetweenAndTeamSetContextIdEqualsIgnoreCase(searchTimeLogPeriodsParameters.getSendFromOrDefault(), searchTimeLogPeriodsParameters.getSendToOrDefault(), teamSetContextId);
             } else {
-                timeLogs = timeLogRepository.findForTeamSetContextId(teamSetContextId);
+                timeLogs = timeLogRepository.findAllByTeamSetContextIdEqualsIgnoreCase(teamSetContextId);
             }
             segmentedTimeLogs.put(teamSetContextId, timeLogs);
         });
