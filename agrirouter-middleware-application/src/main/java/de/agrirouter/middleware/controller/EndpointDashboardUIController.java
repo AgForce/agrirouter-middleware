@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 /**
@@ -26,7 +27,7 @@ import java.util.Date;
  */
 @Slf4j
 @Controller
-public class EndpointDashboardUIController {
+public class EndpointDashboardUIController extends UIController {
 
     private final EndpointService endpointService;
     private final MqttClientManagementService mqttClientManagementService;
@@ -59,45 +60,40 @@ public class EndpointDashboardUIController {
     public String navigation(Principal principal, @RequestParam(value = "externalEndpointId") String externalEndpointId, Model model) {
         try {
             var endpoint = endpointService.findByExternalEndpointId(externalEndpointId);
-            var optionalApplication = applicationService.findByEndpoint(endpoint);
-            if (optionalApplication.isPresent()) {
-                final var application = optionalApplication.get();
-                model.addAttribute("endpoint", endpoint);
+            var application = applicationService.findByEndpoint(endpoint);
+            model.addAttribute("endpoint", endpoint);
 
-                model.addAttribute("agrirouterApplication", application);
+            model.addAttribute("agrirouterApplication", application);
 
-                final var warnings = endpointService.getWarnings(endpoint);
-                warnings.sort((o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
-                model.addAttribute("warnings", warnings);
+            final var warnings = endpointService.getWarnings(endpoint);
+            warnings.sort((o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
+            model.addAttribute("warnings", warnings);
 
-                final var errors = endpointService.getErrors(endpoint);
-                errors.sort((o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
-                model.addAttribute("errors", errors);
+            final var errors = endpointService.getErrors(endpoint);
+            errors.sort((o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
+            model.addAttribute("errors", errors);
 
-                final var technicalConnectionState = mqttClientManagementService.getTechnicalState(application, endpoint.asOnboardingResponse());
-                model.addAttribute("technicalConnectionState", technicalConnectionState);
+            final var technicalConnectionState = mqttClientManagementService.getTechnicalState(endpoint);
+            model.addAttribute("technicalConnectionState", technicalConnectionState);
 
-                model.addAttribute("connectionErrors", technicalConnectionState.connectionErrors());
+            model.addAttribute("connectionErrors", technicalConnectionState.connectionErrors());
 
-                model.addAttribute("cloudOnboardingFailures", cloudOnboardingFailureCache.getAll(endpoint.getExternalEndpointId()));
+            model.addAttribute("cloudOnboardingFailures", cloudOnboardingFailureCache.getAll(endpoint.getExternalEndpointId()));
 
-                model.addAttribute("pendingDeliveryTokens", mqttClientManagementService.getPendingDeliveryTokens(endpoint.asOnboardingResponse()));
+            model.addAttribute("pendingDeliveryTokens", mqttClientManagementService.getPendingDeliveryTokens(endpoint));
 
-                final var messagesWaitingForAcknowledgement = new ArrayList<>(messageWaitingForAcknowledgementService.findAllForAgrirouterEndpointId(endpoint.getAgrirouterEndpointId())
-                        .stream()
-                        .map(messageWaitingForAcknowledgement -> modelMapper.map(messageWaitingForAcknowledgement, MessageWaitingForAcknowledgementDto.class))
-                        .peek(messageWaitingForAcknowledgementDto -> messageWaitingForAcknowledgementDto.setHumanReadableCreated(Date.from(Instant.ofEpochSecond(messageWaitingForAcknowledgementDto.getCreated())))).toList());
-                messagesWaitingForAcknowledgement.sort((o1, o2) -> Long.compare(o2.getCreated(), o1.getCreated()));
-                model.addAttribute("messagesWaitingForAcknowledgement", messagesWaitingForAcknowledgement);
-
-            } else {
-                return Routes.UI.ERROR;
-            }
+            final var messagesWaitingForAcknowledgement = new ArrayList<>(messageWaitingForAcknowledgementService.findAllForAgrirouterEndpointId(endpoint.getAgrirouterEndpointId())
+                    .stream()
+                    .map(messageWaitingForAcknowledgement -> modelMapper.map(messageWaitingForAcknowledgement, MessageWaitingForAcknowledgementDto.class))
+                    .peek(messageWaitingForAcknowledgementDto -> messageWaitingForAcknowledgementDto.setHumanReadableCreated(Date.from(Instant.ofEpochSecond(messageWaitingForAcknowledgementDto.getCreated())))).toList());
+            messagesWaitingForAcknowledgement.sort((o1, o2) -> Long.compare(o2.getCreated(), o1.getCreated()));
+            model.addAttribute("messagesWaitingForAcknowledgement", messagesWaitingForAcknowledgement);
+            model.addAttribute("activeProfiles", getActiveProfiles());
         } catch (BusinessException e) {
             log.error(e.getErrorMessage().asLogMessage());
-            return Routes.UI.ERROR;
+            return Routes.UnsecuredEndpoints.ERROR;
         }
-        return Routes.UI.ENDPOINT_DASHBOARD;
+        return Routes.UserInterface.ThymeleafRouting.ENDPOINT_DASHBOARD;
     }
 
     /**

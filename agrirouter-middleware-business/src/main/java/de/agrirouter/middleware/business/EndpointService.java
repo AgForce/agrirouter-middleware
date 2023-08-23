@@ -24,15 +24,21 @@ import de.agrirouter.middleware.integration.mqtt.list_endpoints.ListEndpointsInt
 import de.agrirouter.middleware.integration.mqtt.list_endpoints.MessageRecipient;
 import de.agrirouter.middleware.integration.mqtt.list_endpoints.cache.MessageRecipientCache;
 import de.agrirouter.middleware.integration.status.AgrirouterStatusIntegrationService;
-import de.agrirouter.middleware.persistence.*;
+import de.agrirouter.middleware.persistence.ApplicationRepository;
+import de.agrirouter.middleware.persistence.EndpointRepository;
+import de.agrirouter.middleware.persistence.ErrorRepository;
+import de.agrirouter.middleware.persistence.WarningRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Business operations regarding the endpoints.
@@ -49,11 +55,7 @@ public class EndpointService {
     private final ApplicationRepository applicationRepository;
     private final MqttClientManagementService mqttClientManagementService;
     private final HealthStatusIntegrationService healthStatusIntegrationService;
-    private final ContentMessageRepository contentMessageRepository;
-    private final UnprocessedMessageRepository unprocessedMessageRepository;
     private final RevokeProcessIntegrationService revokeProcessIntegrationService;
-    private final DeviceDescriptionRepository deviceDescriptionRepository;
-    private final TimeLogRepository timeLogRepository;
     private final BusinessOperationLogService businessOperationLogService;
     private final MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService;
     private final BusinessEventsCache businessEventsCache;
@@ -61,9 +63,13 @@ public class EndpointService {
     private final MessageRecipientCache messageRecipientCache;
     private final AgrirouterStatusIntegrationService agrirouterStatusIntegrationService;
     private final InternalEndpointCache internalEndpointCache;
+    private final RemoveEndpointDataService removeEndpointDataService;
 
     @Value("${app.agrirouter.mqtt.synchronous.response.wait.time}")
     private int nrOfMillisecondsToWaitForTheResponseOfTheAgrirouter;
+
+    @Value("${app.agrirouter.mqtt.synchronous.health.response.wait.time}")
+    private int nrOfMillisecondsToWaitForTheHealthResponseOfTheAgrirouter;
 
     @Value("${app.agrirouter.mqtt.synchronous.response.polling.intervall}")
     private int pollingIntervall;
@@ -76,18 +82,15 @@ public class EndpointService {
                            ApplicationRepository applicationRepository,
                            MqttClientManagementService mqttClientManagementService,
                            HealthStatusIntegrationService healthStatusIntegrationService,
-                           ContentMessageRepository contentMessageRepository,
-                           UnprocessedMessageRepository unprocessedMessageRepository,
                            RevokeProcessIntegrationService revokeProcessIntegrationService,
-                           DeviceDescriptionRepository deviceDescriptionRepository,
-                           TimeLogRepository timeLogRepository,
                            BusinessOperationLogService businessOperationLogService,
                            MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService,
                            BusinessEventsCache businessEventsCache,
                            ListEndpointsIntegrationService listEndpointsIntegrationService,
                            MessageRecipientCache messageRecipientCache,
                            AgrirouterStatusIntegrationService agrirouterStatusIntegrationService,
-                           InternalEndpointCache internalEndpointCache) {
+                           InternalEndpointCache internalEndpointCache,
+                           RemoveEndpointDataService removeEndpointDataService) {
         this.endpointRepository = endpointRepository;
         this.decodeMessageService = decodeMessageService;
         this.errorRepository = errorRepository;
@@ -96,11 +99,7 @@ public class EndpointService {
         this.applicationRepository = applicationRepository;
         this.mqttClientManagementService = mqttClientManagementService;
         this.healthStatusIntegrationService = healthStatusIntegrationService;
-        this.contentMessageRepository = contentMessageRepository;
-        this.unprocessedMessageRepository = unprocessedMessageRepository;
         this.revokeProcessIntegrationService = revokeProcessIntegrationService;
-        this.deviceDescriptionRepository = deviceDescriptionRepository;
-        this.timeLogRepository = timeLogRepository;
         this.businessOperationLogService = businessOperationLogService;
         this.messageWaitingForAcknowledgementService = messageWaitingForAcknowledgementService;
         this.businessEventsCache = businessEventsCache;
@@ -108,6 +107,7 @@ public class EndpointService {
         this.messageRecipientCache = messageRecipientCache;
         this.agrirouterStatusIntegrationService = agrirouterStatusIntegrationService;
         this.internalEndpointCache = internalEndpointCache;
+        this.removeEndpointDataService = removeEndpointDataService;
     }
 
     /**
@@ -160,10 +160,10 @@ public class EndpointService {
     @Async
     @Transactional
     public void deleteEndpointDataFromTheMiddlewareByAgrirouterId(String agrirouterEndpointId) {
-        final var optionalEndpoint = endpointRepository.findByAgrirouterEndpointIdAndIgnoreDeactivated(agrirouterEndpointId);
+        final var optionalEndpoint = endpointRepository.findByAgrirouterEndpointId(agrirouterEndpointId);
         if (optionalEndpoint.isPresent()) {
             final var endpoint = optionalEndpoint.get();
-            deleteEndpointData(optionalEndpoint.get().getExternalEndpointId());
+            delete(optionalEndpoint.get().getExternalEndpointId());
             businessOperationLogService.log(new EndpointLogInformation(endpoint.getExternalEndpointId(), endpoint.getAgrirouterEndpointId()), "Endpoint data incl. the endpoint was deleted.");
         } else {
             log.warn("Endpoint with agrirouter endpoint ID {} not found.", agrirouterEndpointId);
@@ -175,55 +175,46 @@ public class EndpointService {
      *
      * @param externalEndpointId The external endpoint ID.
      */
-    public void deleteEndpointData(String externalEndpointId) {
-        final var optionalEndpoint = endpointRepository.findByExternalEndpointId(externalEndpointId);
-        if (optionalEndpoint.isPresent()) {
-            final var endpoint = optionalEndpoint.get();
-            deleteEndpointWithAllDataFromTheMiddleware(endpoint);
-        }
-    }
-
-    private void deleteEndpointWithAllDataFromTheMiddleware(Endpoint endpoint) {
-        log.debug("Disconnect the endpoint.");
-        mqttClientManagementService.disconnect(endpoint.asOnboardingResponse());
-        log.debug("Remove the data for each connected virtual CU  incl. status, errors, warnings and so on.");
-        endpoint.getConnectedVirtualEndpoints().forEach(this::deleteEndpointData);
-        deleteEndpointData(endpoint);
-        businessOperationLogService.log(new EndpointLogInformation(endpoint.getExternalEndpointId(), endpoint.getAgrirouterEndpointId()), "Endpoint data has been deleted.");
-        endpointRepository.delete(endpoint);
-        businessOperationLogService.log(new EndpointLogInformation(endpoint.getExternalEndpointId(), endpoint.getAgrirouterEndpointId()), "Endpoint was deleted.");
-    }
-
-    /**
-     * Delete the endpoint and remove all the data.
-     *
-     * @param externalEndpointId The external endpoint ID.
-     */
-    @Async
     @Transactional
-    public void deleteAllEndpoints(String externalEndpointId) {
-        endpointRepository.findAllByExternalEndpointId(externalEndpointId).forEach(this::deleteEndpointWithAllDataFromTheMiddleware);
+    public void delete(String externalEndpointId) {
+        var endpoints = endpointRepository.findAllByExternalEndpointId(externalEndpointId);
+        var sensorAlternateIds = new ArrayList<String>();
+        var mainExecutorService = Executors.newFixedThreadPool(endpoints.size());
+        endpoints.forEach(endpoint -> mainExecutorService.execute(() -> {
+            try {
+                List<Endpoint> connectedVirtualEndpoints = endpoint.getConnectedVirtualEndpoints();
+                if (!CollectionUtils.isEmpty(connectedVirtualEndpoints)) {
+                    var subExecutorService = Executors.newFixedThreadPool(connectedVirtualEndpoints.size());
+                    connectedVirtualEndpoints.forEach(virtualEndpoint -> subExecutorService.execute(() -> {
+                        log.debug("Remove the virtual endpoint '{}' from the database.", virtualEndpoint.getExternalEndpointId());
+                        removeEndpointDataService.removeEndpointData(virtualEndpoint);
+                        sensorAlternateIds.add(virtualEndpoint.getAgrirouterEndpointId());
+                    }));
+                    subExecutorService.shutdown();
+                    boolean hasFinishedInTime = subExecutorService.awaitTermination(3, TimeUnit.MINUTES);
+                    if (!hasFinishedInTime) {
+                        log.error("Could not wait for the executor service to finish. The main endpoint '{}' will not be removed from the database.", endpoint.getExternalEndpointId());
+                    } else {
+                        log.debug("Remove the main endpoint '{}' from the database.", endpoint.getExternalEndpointId());
+                        removeEndpointDataService.removeEndpointDataAndEndpoint(endpoint);
+                        sensorAlternateIds.add(endpoint.getAgrirouterEndpointId());
+                    }
+                    log.debug("Wait for the executor service to finish.");
+                } else {
+                    log.debug("No connected virtual endpoints found, therefore the endpoint will be removed directly.");
+                    log.debug("Remove the main endpoint '{}' from the database.", endpoint.getExternalEndpointId());
+                    removeEndpointDataService.removeEndpointDataAndEndpoint(endpoint);
+                    sensorAlternateIds.add(endpoint.getAgrirouterEndpointId());
+                }
+            } catch (InterruptedException e) {
+                log.error("Could not wait for the executor service to finish.", e);
+            }
+        }));
+
+        log.debug("Remove the data for the endpoint incl. messages, timelogs and so on.");
+        sensorAlternateIds.forEach(removeEndpointDataService::removeData);
     }
 
-    private void deleteEndpointData(Endpoint endpoint) {
-        final var sensorAlternateId = endpoint.asOnboardingResponse().getSensorAlternateId();
-
-        log.debug("Remove all unprocessed messages.");
-        unprocessedMessageRepository.deleteAllByAgrirouterEndpointId(sensorAlternateId);
-
-        log.debug("Remove all errors, warnings and information.");
-        errorRepository.deleteAllByEndpoint(endpoint);
-        warningRepository.deleteAllByEndpoint(endpoint);
-
-        log.debug("Remove the content messages for the endpoint.");
-        contentMessageRepository.deleteAllByAgrirouterEndpointId(sensorAlternateId);
-
-        log.debug("Remove device descriptions.");
-        deviceDescriptionRepository.deleteAllByAgrirouterEndpointId(endpoint.getAgrirouterEndpointId());
-
-        log.debug("Remove time logs.");
-        timeLogRepository.deleteAllByAgrirouterEndpointId(endpoint.getAgrirouterEndpointId());
-    }
 
     /**
      * Resending the capabilities.
@@ -231,7 +222,6 @@ public class EndpointService {
      * @param externalEndpointId The internal ID of the endpoint.
      */
     @Async
-    @Transactional
     public void resendCapabilities(String externalEndpointId) {
         final var endpoint = findByExternalEndpointId(externalEndpointId);
         final var optionalApplication = applicationRepository.findByEndpointsContains(endpoint);
@@ -281,7 +271,7 @@ public class EndpointService {
      * @return -
      */
     public ConnectionState getConnectionState(Endpoint endpoint) {
-        return mqttClientManagementService.getState(endpoint.asOnboardingResponse());
+        return mqttClientManagementService.getState(endpoint);
     }
 
     /**
@@ -310,16 +300,6 @@ public class EndpointService {
      */
     public boolean existsByExternalEndpointId(String externalId) {
         return endpointRepository.existsByExternalEndpointId(externalId);
-    }
-
-    /**
-     * Check if the endpoint already exists.
-     *
-     * @param externalId The external ID.
-     * @return True if the endpoint already exists.
-     */
-    public boolean existsByAgrirouterEndpointId(String externalId) {
-        return endpointRepository.existsByAgrirouterEndpointId(externalId);
     }
 
     /**
@@ -369,7 +349,7 @@ public class EndpointService {
                     final var application = optionalApplication.get();
                     revokeProcessIntegrationService.revoke(application, endpoint);
                     businessOperationLogService.log(new EndpointLogInformation(endpoint.getExternalEndpointId(), endpoint.getAgrirouterEndpointId()), "Endpoint was revoked.");
-                    deleteEndpointData(externalEndpointId);
+                    delete(externalEndpointId);
                 } else {
                     throw new BusinessException(ErrorMessageFactory.couldNotFindApplication());
                 }
@@ -389,16 +369,6 @@ public class EndpointService {
      */
     public List<Endpoint> findAll(String internalApplicationId) {
         return endpointRepository.findAllByInternalApplicationId(internalApplicationId);
-    }
-
-    /**
-     * Delete an endpoint.
-     *
-     * @param endpoint The endpoint.
-     */
-    public void delete(Endpoint endpoint) {
-        endpointRepository.deleteByExternalEndpointId(endpoint.getExternalEndpointId());
-        internalEndpointCache.remove(endpoint.getExternalEndpointId());
     }
 
     /**
@@ -434,23 +404,6 @@ public class EndpointService {
             businessOperationLogService.log(new EndpointLogInformation(endpoint.getExternalEndpointId(), endpoint.getAgrirouterEndpointId()), "Warnings were reset.");
         } else {
             throw new BusinessException(ErrorMessageFactory.couldNotFindEndpoint(externalEndpointId));
-        }
-    }
-
-    /**
-     * Deactivate an endpoint.
-     *
-     * @param agrirouterEndpointId The ID of the endpoint.
-     */
-    @Transactional
-    public void deactivateEndpointByAgrirouterId(String agrirouterEndpointId) {
-        final var optionalEndpoint = endpointRepository.findByAgrirouterEndpointId(agrirouterEndpointId);
-        if (optionalEndpoint.isPresent()) {
-            final var endpoint = optionalEndpoint.get();
-            endpoint.setDeactivated(true);
-            endpointRepository.save(endpoint);
-        } else {
-            log.warn("Could not find endpoint with agrirouter ID {}.", agrirouterEndpointId);
         }
     }
 
@@ -511,9 +464,9 @@ public class EndpointService {
      */
     public boolean isHealthy(String externalEndpointId) {
         final var endpoint = findByExternalEndpointId(externalEndpointId);
-        healthStatusIntegrationService.publishHealthStatusMessage(endpoint.asOnboardingResponse());
+        healthStatusIntegrationService.publishHealthStatusMessage(endpoint);
         if (healthStatusIntegrationService.hasPendingResponse(endpoint.getAgrirouterEndpointId())) {
-            var timer = nrOfMillisecondsToWaitForTheResponseOfTheAgrirouter;
+            var timer = nrOfMillisecondsToWaitForTheHealthResponseOfTheAgrirouter;
             while (timer > 0) {
                 try {
                     Thread.sleep(pollingIntervall);
@@ -527,7 +480,7 @@ public class EndpointService {
             }
 
         } else {
-            log.warn("There is no pending health status response for endpoint {}.", endpoint.getAgrirouterEndpointId());
+            log.debug("There is no pending health status response for endpoint {}.", endpoint.getAgrirouterEndpointId());
         }
         return false;
     }
@@ -540,7 +493,7 @@ public class EndpointService {
     public Collection<MessageRecipient> getMessageRecipients(String externalEndpointId) {
         if (agrirouterStatusIntegrationService.isOperational()) {
             final var endpoint = findByExternalEndpointId(externalEndpointId);
-            listEndpointsIntegrationService.publishListEndpointsMessage(endpoint.asOnboardingResponse());
+            listEndpointsIntegrationService.publishListEndpointsMessage(endpoint);
             if (listEndpointsIntegrationService.hasPendingResponse(endpoint.getAgrirouterEndpointId())) {
                 var timer = nrOfMillisecondsToWaitForTheResponseOfTheAgrirouter;
                 while (timer > 0) {
@@ -560,7 +513,7 @@ public class EndpointService {
                     timer = timer - pollingIntervall;
                 }
             } else {
-                log.warn("There is no pending list endpoints response for endpoint {}.", endpoint.getAgrirouterEndpointId());
+                log.debug("There is no pending list endpoints response for endpoint {}.", endpoint.getAgrirouterEndpointId());
             }
             log.debug("Could not find recipients for endpoint '{}', now checking the cache.", externalEndpointId);
             var optionalMessageRecipients = messageRecipientCache.get(externalEndpointId);
@@ -608,5 +561,79 @@ public class EndpointService {
         var endpoints = endpointRepository.findAll();
         endpoints.forEach(endpoint -> internalEndpointCache.put(endpoint.getExternalEndpointId(), endpoint));
         return endpoints;
+    }
+
+    public Map<String, Integer> areHealthy(List<String> externalEndpointIds) {
+        Map<String, Integer> endpointStatus = new HashMap<>();
+        try {
+            var callables = new ArrayList<Callable<TaskResult>>();
+            externalEndpointIds.forEach(externalEndpointId -> callables.add(createHealthCheckTask(externalEndpointId)));
+            // Looks like the topic is not able to handle more than 2 threads for sending health status messages.
+            var executorService = Executors.newFixedThreadPool(2);
+            var futures = executorService.invokeAll(callables);
+            waitUntilAllTasksAreDone(futures);
+            futures.forEach(future -> {
+                try {
+                    var taskResult = future.get();
+                    endpointStatus.put(taskResult.externalEndpointId, taskResult.status);
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("Error while waiting for the health check tasks to finish.", e);
+                }
+            });
+        } catch (InterruptedException e) {
+            log.error("Error while waiting for the health check tasks to finish.", e);
+        }
+        return endpointStatus;
+    }
+
+    /**
+     * Get the number of endpoints.
+     *
+     * @return The number of endpoints.
+     */
+    public long getNrOfEndpoints() {
+        return endpointRepository.countByEndpointType(EndpointType.NON_VIRTUAL);
+    }
+
+    public long getNrOfVirtualEndpoints() {
+        return endpointRepository.countByEndpointType(EndpointType.VIRTUAL);
+    }
+
+    /**
+     * Internal class as a wrapper for the result of the health check.
+     *
+     * @param externalEndpointId The external endpoint id.
+     * @param status             The status of the endpoint.
+     */
+    private record TaskResult(String externalEndpointId, Integer status) {
+    }
+
+    private void waitUntilAllTasksAreDone(List<Future<TaskResult>> futures) {
+        while (futures.stream().anyMatch(future -> !future.isDone())) {
+            try {
+                //noinspection BusyWait
+                Thread.sleep(pollingIntervall);
+            } catch (InterruptedException e) {
+                log.error("Error while waiting for the health check tasks to finish.", e);
+            }
+        }
+    }
+
+    private Callable<TaskResult> createHealthCheckTask(String externalEndpointId) {
+        return () -> {
+            if (agrirouterStatusIntegrationService.isOperational()) {
+                try {
+                    if (isHealthy(externalEndpointId)) {
+                        return new TaskResult(externalEndpointId, HttpStatus.OK.value());
+                    } else {
+                        return new TaskResult(externalEndpointId, HttpStatus.SERVICE_UNAVAILABLE.value());
+                    }
+                } catch (BusinessException e) {
+                    return new TaskResult(externalEndpointId, e.getErrorMessage().getHttpStatus().value());
+                }
+            } else {
+                return new TaskResult(externalEndpointId, HttpStatus.BAD_GATEWAY.value());
+            }
+        };
     }
 }

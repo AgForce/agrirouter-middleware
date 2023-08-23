@@ -17,8 +17,8 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 @SecurityRequirement(
         name = "secured-api"
 )
-public interface SecuredApiController extends CommonController {
+public interface SecuredApiController {
 
-    String API_PREFIX = Routes.Secured.API_PATH;
+    String API_PREFIX = Routes.SecuredRestEndpoints.ALL_REQUESTS;
 
 }

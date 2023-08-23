@@ -12,15 +12,18 @@ import de.agrirouter.middleware.integration.mqtt.health.HealthStatusMessage;
 import de.agrirouter.middleware.integration.mqtt.health.HealthStatusMessages;
 import de.agrirouter.middleware.integration.mqtt.list_endpoints.ListEndpointsMessages;
 import de.agrirouter.middleware.integration.mqtt.list_endpoints.MessageRecipient;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.Refill;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 
@@ -28,7 +31,7 @@ import java.util.ArrayList;
  * Callback for all MQTT connections to the agrirouter.
  */
 @Slf4j
-public class MessageHandlingCallback implements MqttCallback {
+public class MessageHandlingCallback implements MqttCallbackExtended {
 
     private static final Gson GSON = new Gson();
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -36,24 +39,51 @@ public class MessageHandlingCallback implements MqttCallback {
     private final MqttStatistics mqttStatistics;
     private final HealthStatusMessages healthStatusMessages;
     private final ListEndpointsMessages listEndpointsMessages;
+    private final SubscriptionsForMqttClient subscriptionsForMqttClient;
+    private final MqttClientManagementService mqttClientManagementService;
+    private final Bucket bucket;
+    private boolean currentlyDisconnecting = false;
+
+    @Setter
+    @Getter
+    private IMqttClient mqttClient;
+
+    @Setter
+    @Getter
+    private String clientIdOfTheRouterDevice;
+
 
     public MessageHandlingCallback(ApplicationEventPublisher applicationEventPublisher,
                                    DecodeMessageService decodeMessageService,
                                    MqttStatistics mqttStatistics,
                                    HealthStatusMessages healthStatusMessages,
-                                   ListEndpointsMessages listEndpointsMessages) {
+                                   ListEndpointsMessages listEndpointsMessages,
+                                   SubscriptionsForMqttClient subscriptionsForMqttClient,
+                                   MqttClientManagementService mqttClientManagementService) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.decodeMessageService = decodeMessageService;
         this.mqttStatistics = mqttStatistics;
         this.healthStatusMessages = healthStatusMessages;
         this.listEndpointsMessages = listEndpointsMessages;
+        this.subscriptionsForMqttClient = subscriptionsForMqttClient;
+        this.mqttClientManagementService = mqttClientManagementService;
+
+        var limit = Bandwidth.classic(10, Refill.intervally(60, Duration.ofMinutes(1)));
+        this.bucket = Bucket.builder().addLimit(limit).build();
     }
 
     @Override
     public void connectionLost(Throwable throwable) {
-        log.warn("Connection lost. There is at least one endpoint unreachable until the next connection check.");
-        mqttStatistics.increaseNumberOfConnectionLosses();
-        applicationEventPublisher.publishEvent(new CheckConnectionsEvent(this));
+        if (!currentlyDisconnecting) {
+            if (bucket.tryConsume(1)) {
+                log.info("Connection lost for client {}, but rate limit was not exceeded. There are {} token left before the limit will be hit.", this.mqttClient.getClientId(), bucket.getAvailableTokens());
+                mqttStatistics.increaseNumberOfConnectionLosses();
+            } else {
+                log.error("Connection lost for client {} and the rate limit exceeded. Forcefully disconnecting the client and removing it from the cache.", this.mqttClient.getClientId());
+                currentlyDisconnecting = true;
+                mqttClientManagementService.kill(clientIdOfTheRouterDevice);
+            }
+        }
     }
 
     @Override
@@ -97,12 +127,6 @@ public class MessageHandlingCallback implements MqttCallback {
                 applicationEventPublisher.publishEvent(new MessageQueryResultEvent(this, fetchMessageResponse));
                 applicationEventPublisher.publishEvent(new MessageAcknowledgementEvent(this, decodedMessageResponse));
             }
-            case ACK_FOR_FEED_HEADER_LIST -> {
-                log.trace("This was a query result for a message header query that is used.");
-                mqttStatistics.increaseNumberOfAcknowledgements();
-                applicationEventPublisher.publishEvent(new EndpointStatusUpdateEvent(this, fetchMessageResponse.getSensorAlternateId(), fetchMessageResponse));
-                applicationEventPublisher.publishEvent(new MessageAcknowledgementEvent(this, decodedMessageResponse));
-            }
             case CLOUD_REGISTRATIONS -> {
                 log.trace("This was a cloud registration.");
                 mqttStatistics.increaseNumberOfCloudRegistrations();
@@ -116,7 +140,7 @@ public class MessageHandlingCallback implements MqttCallback {
                 applicationEventPublisher.publishEvent(new MessageAcknowledgementEvent(this, decodedMessageResponse));
             }
             default -> {
-                log.trace("This was a unknown message.");
+                log.trace("This was a unknown / unsupported message.");
                 mqttStatistics.increaseNumberOfUnknownMessages();
                 applicationEventPublisher.publishEvent(new UnknownMessageEvent(this, fetchMessageResponse));
                 applicationEventPublisher.publishEvent(new MessageAcknowledgementEvent(this, decodedMessageResponse));
@@ -178,13 +202,43 @@ public class MessageHandlingCallback implements MqttCallback {
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
         log.debug("Delivery for message '{}' complete.", iMqttDeliveryToken.getMessageId());
+        mqttStatistics.increaseNumberOfMessagesPublished();
         try {
             if (null != iMqttDeliveryToken.getMessage()) {
                 log.trace("Message payload for message '{}' >>> {}", iMqttDeliveryToken.getMessageId(), StringUtils.toEncodedString(iMqttDeliveryToken.getMessage().getPayload(), StandardCharsets.UTF_8));
+                mqttStatistics.increasePayloadReceived(iMqttDeliveryToken.getMessage().getPayload().length);
             }
         } catch (MqttException e) {
             log.error("Could not log message content.", e);
         }
     }
 
+    @Override
+    public void connectComplete(boolean reconnect, String serverURI) {
+        if (!currentlyDisconnecting) {
+            if (reconnect) {
+                mqttStatistics.increaseNumberOfReconnects();
+                log.debug("Reconnected client {} to MQTT broker at {}.", mqttClient.getClientId(), serverURI);
+                var allFormerTopics = subscriptionsForMqttClient.getAll(mqttClient.getClientId());
+                subscriptionsForMqttClient.clear(mqttClient.getClientId());
+                allFormerTopics.forEach(topic -> {
+                    try {
+                        var iMqttToken = mqttClient.subscribeWithResponse(topic);
+                        if (iMqttToken.isComplete()) {
+                            subscriptionsForMqttClient.add(mqttClient.getClientId(), topic);
+                        } else {
+                            log.warn("Could not subscribe to topic '{}'.", topic);
+                        }
+                    } catch (MqttException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                });
+            } else {
+                mqttStatistics.increaseNumberOfConnects();
+                log.info("Since this was a first connect and the subscription is done in the subscribe method, we do not need to do anything here.");
+                log.debug("Connected client {} to MQTT broker at {}.", mqttClient.getClientId(), serverURI);
+            }
+        }
+    }
 }

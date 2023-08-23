@@ -3,6 +3,7 @@ package de.agrirouter.middleware.business;
 import com.google.protobuf.ByteString;
 import de.agrirouter.middleware.api.errorhandling.BusinessException;
 import de.agrirouter.middleware.api.errorhandling.CriticalBusinessException;
+import de.agrirouter.middleware.api.errorhandling.error.ErrorMessageFactory;
 import de.agrirouter.middleware.api.logging.BusinessOperationLogService;
 import de.agrirouter.middleware.api.logging.EndpointLogInformation;
 import de.agrirouter.middleware.business.cache.messaging.MessageCache;
@@ -61,7 +62,7 @@ public class PublishNonTelemetryDataService {
                 null);
         try {
             agrirouterStatusIntegrationService.checkCurrentStatus();
-            if (checkConnectionForEndpoint(publishNonTelemetryDataParameters.getExternalEndpointId())) {
+            if (endpointService.isHealthy(publishNonTelemetryDataParameters.getExternalEndpointId())) {
                 checkAndUpdateRecipients(publishNonTelemetryDataParameters);
                 var endpoint = endpointService.findByExternalEndpointId(publishNonTelemetryDataParameters.getExternalEndpointId());
                 sendMessageIntegrationService.publish(endpoint, messagingIntegrationParameters);
@@ -80,41 +81,35 @@ public class PublishNonTelemetryDataService {
     }
 
     private void checkAndUpdateRecipients(PublishNonTelemetryDataParameters publishNonTelemetryDataParameters) {
-        try {
-            final var endpoint = endpointService.findByExternalEndpointId(publishNonTelemetryDataParameters.getExternalEndpointId());
-            var messageRecipients = endpointService.getMessageRecipients(endpoint.getExternalEndpointId());
-            var updatedMessageRecipients = new ArrayList<String>();
-            publishNonTelemetryDataParameters.getRecipients().forEach(recipient -> messageRecipients.stream()
-                    .filter(messageRecipient -> StringUtils.equals(recipient, messageRecipient.getAgrirouterEndpointId()) || StringUtils.equals(recipient, messageRecipient.getExternalId()))
-                    .findFirst().ifPresentOrElse(messageRecipient -> {
-                        log.debug("Recipient {} does exists for endpoint {}, using the agrirouter endpoint ID to send the message.", recipient, publishNonTelemetryDataParameters.getExternalEndpointId());
-                        updatedMessageRecipients.add(messageRecipient.getAgrirouterEndpointId());
-                    }, () -> log.warn("Recipient {} does not exist for endpoint {}.", recipient, publishNonTelemetryDataParameters.getExternalEndpointId())));
-            log.debug("Former recipients for endpoint {}: {}", publishNonTelemetryDataParameters.getExternalEndpointId(), publishNonTelemetryDataParameters.getRecipients());
-            log.debug("Updated recipients for endpoint {}: {}", publishNonTelemetryDataParameters.getExternalEndpointId(), updatedMessageRecipients);
-            publishNonTelemetryDataParameters.setRecipients(updatedMessageRecipients);
-        } catch (BusinessException e) {
-            log.error(e.getErrorMessage().asLogMessage());
-            log.warn("Could not find endpoint with external endpoint ID: {}", publishNonTelemetryDataParameters.getExternalEndpointId());
-            log.info("This might be because the endpoint is not yet registered. The recipients are not updated.");
-        }
-
-    }
-
-
-    private boolean checkConnectionForEndpoint(String externalEndpointId) {
-        try {
-            final var endpoint = endpointService.findByExternalEndpointId(externalEndpointId);
-            return null != endpoint.getEndpointStatus() && endpoint.getEndpointStatus().getConnectionState().isConnected();
-        } catch (BusinessException e) {
-            log.error(e.getErrorMessage().asLogMessage());
-            log.warn("Could not find endpoint with external endpoint ID: {}", externalEndpointId);
-            log.info("This might be because the endpoint is not yet registered. The message is cached and will be sent when the endpoint is registered / connected.");
-            return false;
+        if (null != publishNonTelemetryDataParameters.getRecipients() && !publishNonTelemetryDataParameters.getRecipients().isEmpty()) {
+            try {
+                final var endpoint = endpointService.findByExternalEndpointId(publishNonTelemetryDataParameters.getExternalEndpointId());
+                var messageRecipients = endpointService.getMessageRecipients(endpoint.getExternalEndpointId());
+                var updatedMessageRecipients = new ArrayList<String>();
+                publishNonTelemetryDataParameters.getRecipients().forEach(recipient -> messageRecipients.stream()
+                        .filter(messageRecipient -> StringUtils.equals(recipient, messageRecipient.getAgrirouterEndpointId()) || StringUtils.equals(recipient, messageRecipient.getExternalId()))
+                        .findFirst().ifPresentOrElse(messageRecipient -> {
+                            log.debug("Recipient {} does exists for endpoint {}, using the agrirouter endpoint ID to send the message.", recipient, publishNonTelemetryDataParameters.getExternalEndpointId());
+                            updatedMessageRecipients.add(messageRecipient.getAgrirouterEndpointId());
+                        }, () -> log.warn("Recipient {} does not exist for endpoint {}.", recipient, publishNonTelemetryDataParameters.getExternalEndpointId())));
+                log.debug("Former recipients for endpoint {}: {}", publishNonTelemetryDataParameters.getExternalEndpointId(), publishNonTelemetryDataParameters.getRecipients());
+                log.debug("Updated recipients for endpoint {}: {}", publishNonTelemetryDataParameters.getExternalEndpointId(), updatedMessageRecipients);
+                publishNonTelemetryDataParameters.setRecipients(updatedMessageRecipients);
+            } catch (BusinessException e) {
+                log.error(e.getErrorMessage().asLogMessage());
+                log.warn("Could not find endpoint with external endpoint ID: {}", publishNonTelemetryDataParameters.getExternalEndpointId());
+                log.info("This might be because the endpoint is not yet registered. The recipients are not updated.");
+            }
         }
     }
 
     private ByteString asByteString(String base64EncodedMessageContent) {
-        return ByteString.copyFrom(Base64.getDecoder().decode(base64EncodedMessageContent));
+        try {
+            return ByteString.copyFrom(Base64.getDecoder().decode(base64EncodedMessageContent));
+        } catch (IllegalArgumentException e) {
+            log.debug("Could not decode base64 encoded message content.");
+            log.trace("Message content: {}", base64EncodedMessageContent);
+            throw new BusinessException(ErrorMessageFactory.couldNotDecodeBase64EncodedMessageContent());
+        }
     }
 }

@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,12 +32,12 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 /**
  * Controller to manage applications.
  */
+@Slf4j
 @RestController
 @RequestMapping(SecuredApiController.API_PREFIX + "/endpoint")
 @Tag(
@@ -132,9 +133,9 @@ public class EndpointController implements SecuredApiController {
             throw new ParameterValidationException(errors);
         }
         final var endpoints = endpointService.findByExternalEndpointIds(endpointStatusRequest.getExternalEndpointIds());
-        final var mappedEndpoints = new HashMap<String, EndpointWithStatusDto>();
+        final var mappedEndpoints = new HashMap<String, EndpointDto>();
         endpoints.forEach(endpoint -> {
-            final var endpointWithStatusDto = EndpointStatusHelper.mapEndpointStatus(modelMapper, applicationService, messageCache, endpoint);
+            final var endpointWithStatusDto = EndpointStatusHelper.mapEndpointWithApplicationDetails(modelMapper, applicationService, endpointService, messageCache, endpoint);
             mappedEndpoints.put(endpoint.getExternalEndpointId(), endpointWithStatusDto);
         });
         return ResponseEntity.ok(new EndpointStatusResponse(mappedEndpoints));
@@ -553,7 +554,7 @@ public class EndpointController implements SecuredApiController {
         final var endpoints = endpointService.findByExternalEndpointIds(endpointStatusRequest.getExternalEndpointIds());
         final var mappedEndpoints = new HashMap<String, TechnicalConnectionStateDto>();
         endpoints.forEach(endpoint -> {
-            final var technicalConnectionStateDto = EndpointStatusHelper.mapTechnicalConnectionState(modelMapper, applicationService, endpointService, mqttClientManagementService, endpoint);
+            final var technicalConnectionStateDto = EndpointStatusHelper.mapTechnicalConnectionState(modelMapper, endpointService, mqttClientManagementService, endpoint);
             mappedEndpoints.put(endpoint.getExternalEndpointId(), technicalConnectionStateDto);
         });
         return ResponseEntity.ok(new TechnicalConnectionStateResponse(mappedEndpoints));
@@ -613,7 +614,6 @@ public class EndpointController implements SecuredApiController {
     public ResponseEntity<Void> health(@Parameter(description = "The external endpoint id.", required = true) @PathVariable String externalEndpointId) {
         if (agrirouterStatusIntegrationService.isOperational()) {
             try {
-                endpointService.findByExternalEndpointId(externalEndpointId);
                 if (endpointService.isHealthy(externalEndpointId)) {
                     return ResponseEntity.status(HttpStatus.OK).build();
                 } else {
@@ -677,26 +677,13 @@ public class EndpointController implements SecuredApiController {
                     )
             }
     )
-    public ResponseEntity<EndpointHealthStatusResponse> health(@Parameter(description = "The external endpoint id.", required = true) @Valid @RequestBody EndpointHealthStatusRequest endpointHealthStatusRequest, @Parameter(hidden = true) Errors errors) {
+    public ResponseEntity<EndpointHealthStatusResponse> health(@Parameter(description = "The external endpoint id.", required = true) @Valid @RequestBody EndpointHealthStatusRequest endpointHealthStatusRequest,
+                                                               @Parameter(hidden = true) Errors errors) {
         if (errors.hasErrors()) {
             throw new ParameterValidationException(errors);
         }
-        Map<String, Integer> endpointStatus = new HashMap<>();
-        endpointHealthStatusRequest.getExternalEndpointIds().forEach(externalEndpointId -> {
-            try {
-                final var endpoint = endpointService.findByExternalEndpointId(externalEndpointId);
-                if (endpoint.isHealthy()) {
-                    endpointStatus.put(externalEndpointId, HttpStatus.OK.value());
-                } else {
-                    endpointStatus.put(externalEndpointId, HttpStatus.SERVICE_UNAVAILABLE.value());
-                }
-            } catch (BusinessException e) {
-                endpointStatus.put(externalEndpointId, e.getErrorMessage().getHttpStatus().value());
-            }
-        });
-        return ResponseEntity.ok(new EndpointHealthStatusResponse(endpointStatus));
+        return ResponseEntity.ok(new EndpointHealthStatusResponse(endpointService.areHealthy(endpointHealthStatusRequest.getExternalEndpointIds())));
     }
-
 
     /**
      * Fetch the recipients for an endpoint.
@@ -802,5 +789,62 @@ public class EndpointController implements SecuredApiController {
         final var businessEvents = endpointService.getBusinessEvents(externalEndpointId);
         return ResponseEntity.status(HttpStatus.OK).body(new BusinessEventsResponse(externalEndpointId, businessEvents));
     }
+
+    /**
+     * Reset warnings for the endpoint.
+     *
+     * @return HTTP 200 after completion.
+     */
+    @DeleteMapping(
+            "/{externalEndpointId}"
+    )
+    @Operation(
+            operationId = "endpoint.delete-endpoint",
+            description = "Delete the endpoint.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "In case the operation was successful.",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a business exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "In case of a parameter validation exception.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ParameterValidationProblemResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "In case of an unknown error.",
+                            content = @Content(
+                                    schema = @Schema(
+                                            implementation = ErrorResponse.class
+                                    ),
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<Void> deleteEndpoint(@Parameter(description = "The external endpoint ID.", required = true) @PathVariable String externalEndpointId) {
+        endpointService.delete(externalEndpointId);
+        return ResponseEntity.ok().build();
+    }
+
 
 }

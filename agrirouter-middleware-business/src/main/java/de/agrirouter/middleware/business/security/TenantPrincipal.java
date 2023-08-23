@@ -5,6 +5,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -21,7 +22,16 @@ public class TenantPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.<GrantedAuthority>singletonList(new SimpleGrantedAuthority("User"));
+        if (tenant.isMonitoringAccess()) {
+            return Collections.<GrantedAuthority>singletonList(new SimpleGrantedAuthority(Roles.MONITORING.getKey()));
+        }
+        if (tenant.isDefaultTenant()) {
+            var roles = new ArrayList<GrantedAuthority>();
+            roles.add(new SimpleGrantedAuthority(Roles.USER.getKey()));
+            roles.add(new SimpleGrantedAuthority(Roles.DEFAULT.getKey()));
+            return roles;
+        }
+        return Collections.<GrantedAuthority>singletonList(new SimpleGrantedAuthority(Roles.USER.getKey()));
     }
 
     @Override

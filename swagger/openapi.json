@@ -3,7 +3,7 @@
   "info": {
     "title": "Agrirouter Middleware",
     "description": "The agrirouter© middleware was developed to have easier access to the functionality of the agrirouter.\nThe agrirouter© middleware is an additional layer of abstraction and provides access to the agrirouter© without deep knowledge of the underlying processes.\nThe agrirouter© middleware manages the connections and fetches messages from the agrirouter, based on the technical messages types registered.\nIn addition, the agrirouter© middleware provides simple data conversion from ISOXML TaskData to EFDI Telemetry Data and provides searching operations for DDIs and other parts of the specification.",
-    "version": "5.11.0-SNAPSHOT"
+    "version": "8.5.0"
   },
   "servers": [
     {
@@ -21,12 +21,12 @@
       "description": "Operations for non telemetry data management, i.e. publish images, task data or documents to the agrirouter."
     },
     {
-      "name": "application management",
-      "description": "Operations for the application management, i.e. register, add supported technical message types and status checks."
-    },
-    {
       "name": "endpoint management",
       "description": "Operations for the endpoint management, i.e. status checking or searching for endpoints."
+    },
+    {
+      "name": "application management",
+      "description": "Operations for the application management, i.e. register, add supported technical message types and status checks."
     },
     {
       "name": "farming software management",
@@ -37,20 +37,12 @@
       "description": "Operations for telemetry data management, i.e. search for telemetry data, search for time log periods or fetch data from the internal storage."
     },
     {
-      "name": "info",
-      "description": "Operation for information purpose."
-    },
-    {
       "name": "telemetry platform management",
       "description": "Operations for telemetry platform management, i.e. onboard process for (virtual) endpoints or revoking endpoints."
     },
     {
       "name": "maintenance",
       "description": "Maintenance operations for internal usage. Do NOT use this profile in production."
-    },
-    {
-      "name": "statistics",
-      "description": "Statistics for the whole application."
     }
   ],
   "paths": {
@@ -1769,37 +1761,6 @@
         }
       }
     },
-    "/unsecured/api/info/version": {
-      "get": {
-        "tags": [
-          "info"
-        ],
-        "description": "Get the current version incl. the timestamp of the build.",
-        "operationId": "info.version",
-        "responses": {
-          "200": {
-            "description": "The current version of the application.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VersionsResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "In case of an unknown error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/unsecured/api/farming-software/{internalApplicationId}/{externalEndpointId}": {
       "get": {
         "tags": [
@@ -1949,326 +1910,6 @@
             }
           }
         }
-      }
-    },
-    "/secured/api/statistics/mqtt": {
-      "get": {
-        "tags": [
-          "statistics"
-        ],
-        "description": "Get the statistics for the MQTT connections.",
-        "operationId": "statistics.mqtt",
-        "responses": {
-          "200": {
-            "description": "The statistics for the MQTT connections.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MqttStatisticsResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "secured-api": []
-          }
-        ]
-      }
-    },
-    "/secured/api/statistics/message-count/{internalApplicationId}": {
-      "get": {
-        "tags": [
-          "statistics"
-        ],
-        "operationId": "getMessageStatistics",
-        "parameters": [
-          {
-            "name": "internalApplicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "secured-api": []
-          }
-        ]
-      }
-    },
-    "/secured/api/statistics/message-count": {
-      "get": {
-        "tags": [
-          "statistics"
-        ],
-        "operationId": "getMessageStatistics_1",
-        "parameters": [
-          {
-            "name": "internalApplicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "secured-api": []
-          }
-        ]
-      }
-    },
-    "/secured/api/statistics/latest-query-results": {
-      "get": {
-        "tags": [
-          "statistics"
-        ],
-        "description": "Get the statistics for the latest query results.",
-        "operationId": "statistics.latest-query-results",
-        "parameters": [
-          {
-            "name": "internalApplicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The statistics for the latest query results.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LatestQueryResultsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "In case of a business exception.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "In case of an unknown error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "secured-api": []
-          }
-        ]
-      }
-    },
-    "/secured/api/statistics/latest-query-results/{internalApplicationId}": {
-      "get": {
-        "tags": [
-          "statistics"
-        ],
-        "description": "Get the statistics for the latest query results.",
-        "operationId": "statistics.latest-query-results_1",
-        "parameters": [
-          {
-            "name": "internalApplicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The statistics for the latest query results.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LatestQueryResultsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "In case of a business exception.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "In case of an unknown error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "secured-api": []
-          }
-        ]
-      }
-    },
-    "/secured/api/statistics/latest-header-query-results/{internalApplicationId}": {
-      "get": {
-        "tags": [
-          "statistics"
-        ],
-        "description": "Get the statistics for the latest query results.",
-        "operationId": "statistics.latest-query-results_2",
-        "parameters": [
-          {
-            "name": "internalApplicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The statistics for the latest query results.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LatestQueryResultsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "In case of a business exception.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "In case of an unknown error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "secured-api": []
-          }
-        ]
-      }
-    },
-    "/secured/api/statistics/latest-header-query-results": {
-      "get": {
-        "tags": [
-          "statistics"
-        ],
-        "description": "Get the statistics for the latest query results.",
-        "operationId": "statistics.latest-query-results_3",
-        "parameters": [
-          {
-            "name": "internalApplicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The statistics for the latest query results.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LatestQueryResultsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "In case of a business exception.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "In case of an unknown error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "secured-api": []
-          }
-        ]
       }
     },
     "/secured/api/non-telemetry-data/download/{externalEndpointId}/{messageId}": {
@@ -2802,18 +2443,42 @@
         ]
       }
     },
-    "/unsecured/api/maintenance/endpoint/{externalEndpointId}": {
-      "delete": {
+    "/monitoring/api/statistics/mqtt": {
+      "get": {
         "tags": [
-          "maintenance"
+          "monitoring"
         ],
-        "description": "Delete the endpoint.",
-        "operationId": "maintenance.delete-endpoint",
+        "description": "Get the statistics for the MQTT connections.",
+        "operationId": "statistics.mqtt",
+        "responses": {
+          "200": {
+            "description": "The statistics for the MQTT connections.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MqttStatisticsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secured-api": []
+          }
+        ]
+      }
+    },
+    "/monitoring/api/statistics/message-count/{internalApplicationId}": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "operationId": "getMessageStatistics",
         "parameters": [
           {
-            "name": "externalEndpointId",
+            "name": "internalApplicationId",
             "in": "path",
-            "description": "The external endpoint ID.",
             "required": true,
             "schema": {
               "type": "string"
@@ -2822,17 +2487,296 @@
         ],
         "responses": {
           "200": {
-            "description": "In case the operation was successful.",
-            "content": {
-              "application/json": {}
-            }
-          },
-          "400": {
-            "description": "In case of a parameter validation exception.",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ParameterValidationProblemResponse"
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secured-api": []
+          }
+        ]
+      }
+    },
+    "/monitoring/api/statistics/message-count": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "operationId": "getMessageStatistics_1",
+        "parameters": [
+          {
+            "name": "internalApplicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secured-api": []
+          }
+        ]
+      }
+    },
+    "/monitoring/api/statistics/latest-query-results": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "description": "Get the statistics for the latest query results.",
+        "operationId": "statistics.latest-query-results",
+        "parameters": [
+          {
+            "name": "internalApplicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The statistics for the latest query results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestQueryResultsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "In case of a business exception.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "In case of an unknown error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secured-api": []
+          }
+        ]
+      }
+    },
+    "/monitoring/api/statistics/latest-query-results/{internalApplicationId}": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "description": "Get the statistics for the latest query results.",
+        "operationId": "statistics.latest-query-results_1",
+        "parameters": [
+          {
+            "name": "internalApplicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The statistics for the latest query results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestQueryResultsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "In case of a business exception.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "In case of an unknown error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secured-api": []
+          }
+        ]
+      }
+    },
+    "/monitoring/api/statistics/latest-header-query-results/{internalApplicationId}": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "description": "Get the statistics for the latest query results.",
+        "operationId": "statistics.latest-query-results_2",
+        "parameters": [
+          {
+            "name": "internalApplicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The statistics for the latest query results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestQueryResultsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "In case of a business exception.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "In case of an unknown error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secured-api": []
+          }
+        ]
+      }
+    },
+    "/monitoring/api/statistics/latest-header-query-results": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "description": "Get the statistics for the latest query results.",
+        "operationId": "statistics.latest-query-results_3",
+        "parameters": [
+          {
+            "name": "internalApplicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The statistics for the latest query results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestQueryResultsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "In case of a business exception.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "In case of an unknown error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secured-api": []
+          }
+        ]
+      }
+    },
+    "/monitoring/api/info/version": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "description": "Get the current version incl. the timestamp of the build.",
+        "operationId": "info.version",
+        "responses": {
+          "200": {
+            "description": "The current version of the application.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionsResponse"
                 }
               }
             }
@@ -2848,6 +2792,42 @@
             }
           }
         }
+      }
+    },
+    "/monitoring/api/agrirouter/status": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "description": "Get the current status of the agrirouter©.",
+        "operationId": "agrirouter.status",
+        "responses": {
+          "200": {
+            "description": "The current status of the agrirouter©.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgrirouterStatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "In case the agrirouter© is not operational.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgrirouterStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "monitoring-api": []
+          }
+        ]
       }
     },
     "/unsecured/api/maintenance/endpoint/reset/warnings/{externalEndpointId}": {
@@ -3140,6 +3120,59 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "In case of an unknown error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secured-api": []
+          }
+        ]
+      }
+    },
+    "/secured/api/endpoint/{externalEndpointId}": {
+      "delete": {
+        "tags": [
+          "endpoint management"
+        ],
+        "description": "Delete the endpoint.",
+        "operationId": "endpoint.delete-endpoint",
+        "parameters": [
+          {
+            "name": "externalEndpointId",
+            "in": "path",
+            "description": "The external endpoint ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "In case the operation was successful.",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "In case of a parameter validation exception.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParameterValidationProblemResponse"
                 }
               }
             }
@@ -3896,7 +3929,7 @@
         },
         "description": "Representation of a tenant within the middleware."
       },
-      "VersionsResponse": {
+      "EndpointRecipientsResponse": {
         "type": "object",
         "properties": {
           "timestamp": {
@@ -3904,78 +3937,350 @@
             "description": "The timestamp (UTC) of the response.",
             "format": "date-time"
           },
-          "version": {
+          "messageRecipients": {
+            "type": "array",
+            "description": "The message recipients for this endpoint.",
+            "items": {
+              "$ref": "#/components/schemas/MessageRecipientDto"
+            }
+          }
+        },
+        "description": "The response when asking for the recipients of an endpoint."
+      },
+      "MessageRecipientDto": {
+        "type": "object",
+        "properties": {
+          "agrirouterEndpointId": {
+            "type": "string"
+          },
+          "endpointName": {
+            "type": "string"
+          },
+          "endpointType": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "technicalMessageType": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "cached": {
+            "type": "boolean"
+          },
+          "timestamp": {
             "type": "string"
           }
         },
-        "description": "Response schema for the version information."
+        "description": "The status of an endpoint."
       },
-      "MqttStatisticsResponse": {
+      "BusinessEventsResponse": {
+        "type": "object",
+        "properties": {
+          "externalEndpointId": {
+            "type": "string",
+            "description": "External endpoint ID."
+          },
+          "businessEvents": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "Business events.",
+              "format": "date-time"
+            },
+            "description": "Business events."
+          }
+        },
+        "description": "Response object for business events of an endpoint."
+      },
+      "FindApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "The timestamp (UTC) of the response.",
+            "format": "date-time"
+          },
+          "application": {
+            "$ref": "#/components/schemas/ApplicationDto"
+          }
+        },
+        "description": "The response when searching for an application."
+      },
+      "ConnectionStateDto": {
+        "type": "object",
+        "properties": {
+          "cached": {
+            "type": "boolean",
+            "description": "Is the connection available and cached?"
+          },
+          "connected": {
+            "type": "boolean",
+            "description": "Is the connection still connected to the AR?"
+          },
+          "subscriptionSent": {
+            "type": "boolean",
+            "description": "Has the subscription been sent?"
+          },
+          "clientId": {
+            "type": "string",
+            "description": "The client ID of the connection."
+          }
+        },
+        "description": "The current status of the connection."
+      },
+      "EndpointDto": {
+        "type": "object",
+        "properties": {
+          "agrirouterEndpointId": {
+            "type": "string",
+            "description": "The ID of an endpoint."
+          },
+          "externalEndpointId": {
+            "type": "string",
+            "description": "The external ID of an endpoint."
+          },
+          "deactivated": {
+            "type": "boolean",
+            "description": "The current status of an endpoint, could be active or deactivated."
+          },
+          "internalApplicationId": {
+            "type": "string",
+            "description": "The internal ID of the application."
+          },
+          "applicationId": {
+            "type": "string",
+            "description": "The ID of the application."
+          },
+          "versionId": {
+            "type": "string",
+            "description": "The ID of the application version."
+          },
+          "agrirouterAccountId": {
+            "type": "string",
+            "description": "The account ID for this endpoint."
+          },
+          "endpointType": {
+            "type": "string",
+            "description": "The type of the endpoint.",
+            "enum": [
+              "NON_VIRTUAL",
+              "VIRTUAL"
+            ]
+          },
+          "nrOfMessagesCached": {
+            "type": "integer",
+            "description": "Nr. of messages that are cached.",
+            "format": "int64"
+          },
+          "connectionState": {
+            "$ref": "#/components/schemas/ConnectionStateDto"
+          },
+          "virtualEndpoints": {
+            "type": "array",
+            "description": "The virtual endpoints of the endpoint.",
+            "items": {
+              "$ref": "#/components/schemas/EndpointDto"
+            }
+          }
+        },
+        "description": "Representation of an endpoint."
+      },
+      "EndpointWithChildrenDto": {
+        "type": "object",
+        "properties": {
+          "agrirouterEndpointId": {
+            "type": "string",
+            "description": "The ID of an endpoint."
+          },
+          "externalEndpointId": {
+            "type": "string",
+            "description": "The external ID of an endpoint."
+          },
+          "endpointType": {
+            "type": "string",
+            "description": "The type of the endpoint.",
+            "enum": [
+              "NON_VIRTUAL",
+              "VIRTUAL"
+            ]
+          },
+          "connectedVirtualEndpoints": {
+            "type": "array",
+            "description": "All the children of the endpoint.",
+            "items": {
+              "$ref": "#/components/schemas/EndpointDto"
+            }
+          },
+          "deactivated": {
+            "type": "boolean",
+            "description": "Marks an endpoint as deactivated."
+          },
+          "agrirouterAccountId": {
+            "type": "string",
+            "description": "The account ID for this endpoint."
+          }
+        },
+        "description": "Representation of an endpoint with all children."
+      },
+      "FindEndpointsForApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "The timestamp (UTC) of the response.",
+            "format": "date-time"
+          },
+          "endpoints": {
+            "type": "array",
+            "description": "The endpoints for this application.",
+            "items": {
+              "$ref": "#/components/schemas/EndpointWithChildrenDto"
+            }
+          }
+        },
+        "description": "The response when searching for endpoints belonging to the application."
+      },
+      "ApplicationStatusResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "The timestamp (UTC) of the response.",
+            "format": "date-time"
+          },
+          "application": {
+            "$ref": "#/components/schemas/ApplicationWithEndpointStatusDto"
+          }
+        },
+        "description": "Response class to show the current status of an application."
+      },
+      "ApplicationWithEndpointStatusDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The technical ID of the entity.",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the application."
+          },
+          "applicationId": {
+            "type": "string",
+            "description": "The agrirouter© ID of the application."
+          },
+          "internalApplicationId": {
+            "type": "string",
+            "description": "The internal ID of the application."
+          },
+          "versionId": {
+            "type": "string",
+            "description": "The version of the application. Each agrirouter© version creates a new application in the middleware."
+          },
+          "usesRouterDevice": {
+            "type": "boolean",
+            "description": "Marker if the application uses a router device."
+          },
+          "endpoints": {
+            "type": "array",
+            "description": "The status information for all endpoints within the application.",
+            "items": {
+              "$ref": "#/components/schemas/EndpointDto"
+            }
+          }
+        },
+        "description": "The current status of the application incl. its endpoints."
+      },
+      "ConnectionStatistics": {
         "type": "object",
         "properties": {
           "numberOfConnectionLosses": {
             "type": "integer",
-            "description": "The number of connection losses.",
             "format": "int64"
           },
           "numberOfCacheMisses": {
             "type": "integer",
-            "description": "The number of cache misses.",
             "format": "int64"
-          },
-          "numberOfMessagesArrived": {
-            "type": "integer",
-            "description": "The number of messages arrived.",
-            "format": "int64"
-          },
-          "numberOfAcknowledgements": {
-            "type": "integer",
-            "description": "The number of acknowledgements.",
-            "format": "int64"
-          },
-          "numberOfPushNotifications": {
-            "type": "integer",
-            "description": "The number of push notifications.",
-            "format": "int64"
-          },
-          "numberOfCloudRegistrations": {
-            "type": "integer",
-            "description": "The number of cloud registrations.",
-            "format": "int32"
-          },
-          "numberOfEndpointListings": {
-            "type": "integer",
-            "description": "The number of endpoint listings.",
-            "format": "int64"
-          },
-          "numberOfUnknownMessages": {
-            "type": "integer",
-            "description": "The number of unknown messages.",
-            "format": "int32"
           },
           "numberOfClientInitializations": {
             "type": "integer",
-            "description": "The number of client initializations.",
             "format": "int64"
           },
           "numberOfDisconnects": {
             "type": "integer",
-            "description": "The number of disconnects.",
+            "format": "int64"
+          }
+        },
+        "description": "Statistics for the MQTT connections."
+      },
+      "ContentMessageStatistics": {
+        "type": "object",
+        "properties": {
+          "numberOfContentMessagesReceived": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "description": "Statistics for the MQTT content messages."
+      },
+      "MqttMessageStatistics": {
+        "type": "object",
+        "properties": {
+          "numberOfMessagesArrived": {
+            "type": "integer",
             "format": "int64"
           },
-          "numberOfStaleConnectionsRemovals": {
+          "numberOfAcknowledgements": {
             "type": "integer",
-            "description": "The number of stale connections removals.",
             "format": "int64"
+          },
+          "numberOfPushNotifications": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "numberOfCloudRegistrations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "numberOfEndpointListings": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "numberOfUnknownMessages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Statistics for the MQTT messages."
+      },
+      "MqttStatisticsResponse": {
+        "type": "object",
+        "properties": {
+          "connectionStatistics": {
+            "$ref": "#/components/schemas/ConnectionStatistics"
+          },
+          "mqttMessageStatistics": {
+            "$ref": "#/components/schemas/MqttMessageStatistics"
+          },
+          "contentMessageStatistics": {
+            "$ref": "#/components/schemas/ContentMessageStatistics"
           },
           "numberOfConnectedClients": {
             "type": "integer",
-            "description": "The number of connected clients.",
+            "description": "Number of connected clients.",
             "format": "int64"
           },
           "numberOfDisconnectedClients": {
             "type": "integer",
-            "description": "The number of disconnected clients.",
+            "description": "Number of disconnected clients.",
             "format": "int64"
           }
         },
@@ -4047,14 +4352,14 @@
           "options": {
             "$ref": "#/components/schemas/MessageOptions"
           },
+          "extendable": {
+            "type": "boolean"
+          },
           "realOneofs": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OneofDescriptor"
             }
-          },
-          "extendable": {
-            "type": "boolean"
           }
         }
       },
@@ -4077,12 +4382,15 @@
             "type": "integer",
             "format": "int32"
           },
-          "serializedSize": {
+          "extensionList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldDescriptorProto"
+            }
+          },
+          "extensionCount": {
             "type": "integer",
             "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserDescriptorProto"
           },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/DescriptorProto"
@@ -4099,12 +4407,6 @@
               "$ref": "#/components/schemas/ExtensionRange"
             }
           },
-          "reservedRangeList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReservedRange"
-            }
-          },
           "reservedNameList": {
             "type": "array",
             "properties": {
@@ -4116,6 +4418,12 @@
               "type": "string"
             }
           },
+          "reservedRangeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservedRange"
+            }
+          },
           "enumTypeOrBuilderList": {
             "type": "array",
             "items": {
@@ -4125,20 +4433,20 @@
           "optionsOrBuilder": {
             "$ref": "#/components/schemas/MessageOptionsOrBuilder"
           },
-          "nestedTypeOrBuilderList": {
+          "extensionRangeOrBuilderList": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DescriptorProtoOrBuilder"
+              "$ref": "#/components/schemas/ExtensionRangeOrBuilder"
             }
           },
           "extensionRangeCount": {
             "type": "integer",
             "format": "int32"
           },
-          "fieldOrBuilderList": {
+          "reservedRangeOrBuilderList": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/FieldDescriptorProtoOrBuilder"
+              "$ref": "#/components/schemas/ReservedRangeOrBuilder"
             }
           },
           "oneofDeclOrBuilderList": {
@@ -4147,35 +4455,32 @@
               "$ref": "#/components/schemas/OneofDescriptorProtoOrBuilder"
             }
           },
-          "extensionRangeOrBuilderList": {
+          "fieldOrBuilderList": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ExtensionRangeOrBuilder"
+              "$ref": "#/components/schemas/FieldDescriptorProtoOrBuilder"
             }
           },
-          "reservedRangeOrBuilderList": {
+          "nestedTypeOrBuilderList": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ReservedRangeOrBuilder"
+              "$ref": "#/components/schemas/DescriptorProtoOrBuilder"
             }
-          },
-          "reservedNameCount": {
-            "type": "integer",
-            "format": "int32"
           },
           "reservedRangeCount": {
             "type": "integer",
             "format": "int32"
           },
-          "extensionList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FieldDescriptorProto"
-            }
-          },
-          "extensionCount": {
+          "reservedNameCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "serializedSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserDescriptorProto"
           },
           "oneofDeclCount": {
             "type": "integer",
@@ -4189,25 +4494,25 @@
             "type": "integer",
             "format": "int32"
           },
+          "nameBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
           "enumTypeList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EnumDescriptorProto"
             }
           },
-          "nameBytes": {
-            "$ref": "#/components/schemas/ByteString"
+          "oneofDeclList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OneofDescriptorProto"
+            }
           },
           "fieldList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FieldDescriptorProto"
-            }
-          },
-          "oneofDeclList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OneofDescriptorProto"
             }
           },
           "nestedTypeList": {
@@ -4219,14 +4524,14 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -4248,6 +4553,16 @@
             "type": "integer",
             "format": "int32"
           },
+          "extensionList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldDescriptorProto"
+            }
+          },
+          "extensionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "extensionOrBuilderList": {
             "type": "array",
             "items": {
@@ -4260,16 +4575,16 @@
               "$ref": "#/components/schemas/ExtensionRange"
             }
           },
-          "reservedRangeList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReservedRange"
-            }
-          },
           "reservedNameList": {
             "type": "array",
             "items": {
               "type": "string"
+            }
+          },
+          "reservedRangeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservedRange"
             }
           },
           "enumTypeOrBuilderList": {
@@ -4281,14 +4596,20 @@
           "optionsOrBuilder": {
             "$ref": "#/components/schemas/MessageOptionsOrBuilder"
           },
+          "extensionRangeOrBuilderList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtensionRangeOrBuilder"
+            }
+          },
           "extensionRangeCount": {
             "type": "integer",
             "format": "int32"
           },
-          "fieldOrBuilderList": {
+          "reservedRangeOrBuilderList": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/FieldDescriptorProtoOrBuilder"
+              "$ref": "#/components/schemas/ReservedRangeOrBuilder"
             }
           },
           "oneofDeclOrBuilderList": {
@@ -4297,33 +4618,17 @@
               "$ref": "#/components/schemas/OneofDescriptorProtoOrBuilder"
             }
           },
-          "extensionRangeOrBuilderList": {
+          "fieldOrBuilderList": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ExtensionRangeOrBuilder"
+              "$ref": "#/components/schemas/FieldDescriptorProtoOrBuilder"
             }
-          },
-          "reservedRangeOrBuilderList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReservedRangeOrBuilder"
-            }
-          },
-          "reservedNameCount": {
-            "type": "integer",
-            "format": "int32"
           },
           "reservedRangeCount": {
             "type": "integer",
             "format": "int32"
           },
-          "extensionList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FieldDescriptorProto"
-            }
-          },
-          "extensionCount": {
+          "reservedNameCount": {
             "type": "integer",
             "format": "int32"
           },
@@ -4339,25 +4644,25 @@
             "type": "integer",
             "format": "int32"
           },
+          "nameBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
           "enumTypeList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EnumDescriptorProto"
             }
           },
-          "nameBytes": {
-            "$ref": "#/components/schemas/ByteString"
+          "oneofDeclList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OneofDescriptorProto"
+            }
           },
           "fieldList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FieldDescriptorProto"
-            }
-          },
-          "oneofDeclList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OneofDescriptorProto"
             }
           },
           "nestedTypeList": {
@@ -4369,20 +4674,20 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -4437,21 +4742,14 @@
           "initialized": {
             "type": "boolean"
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserEnumDescriptorProto"
+          "valueOrBuilderList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumValueDescriptorProtoOrBuilder"
+            }
           },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/EnumDescriptorProto"
-          },
-          "reservedRangeList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EnumReservedRange"
-            }
           },
           "reservedNameList": {
             "type": "array",
@@ -4464,6 +4762,12 @@
               "type": "string"
             }
           },
+          "reservedRangeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumReservedRange"
+            }
+          },
           "optionsOrBuilder": {
             "$ref": "#/components/schemas/EnumOptionsOrBuilder"
           },
@@ -4473,19 +4777,20 @@
               "$ref": "#/components/schemas/EnumReservedRangeOrBuilder"
             }
           },
-          "reservedNameCount": {
-            "type": "integer",
-            "format": "int32"
-          },
           "reservedRangeCount": {
             "type": "integer",
             "format": "int32"
           },
-          "valueOrBuilderList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EnumValueDescriptorProtoOrBuilder"
-            }
+          "reservedNameCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "serializedSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserEnumDescriptorProto"
           },
           "nameBytes": {
             "$ref": "#/components/schemas/ByteString"
@@ -4503,14 +4808,14 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -4528,16 +4833,22 @@
           "options": {
             "$ref": "#/components/schemas/EnumOptions"
           },
-          "reservedRangeList": {
+          "valueOrBuilderList": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/EnumReservedRange"
+              "$ref": "#/components/schemas/EnumValueDescriptorProtoOrBuilder"
             }
           },
           "reservedNameList": {
             "type": "array",
             "items": {
               "type": "string"
+            }
+          },
+          "reservedRangeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumReservedRange"
             }
           },
           "optionsOrBuilder": {
@@ -4549,19 +4860,13 @@
               "$ref": "#/components/schemas/EnumReservedRangeOrBuilder"
             }
           },
-          "reservedNameCount": {
-            "type": "integer",
-            "format": "int32"
-          },
           "reservedRangeCount": {
             "type": "integer",
             "format": "int32"
           },
-          "valueOrBuilderList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EnumValueDescriptorProtoOrBuilder"
-            }
+          "reservedNameCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "nameBytes": {
             "$ref": "#/components/schemas/ByteString"
@@ -4579,20 +4884,20 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -4617,15 +4922,12 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserEnumOptions"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/EnumOptions"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -4633,9 +4935,12 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "uninterpretedOptionCount": {
+          "serializedSize": {
             "type": "integer",
             "format": "int32"
+          },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserEnumOptions"
           },
           "allowAlias": {
             "type": "boolean"
@@ -4643,14 +4948,14 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -4677,15 +4982,15 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "uninterpretedOptionList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOption"
             }
-          },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
           },
           "allowAlias": {
             "type": "boolean"
@@ -4696,17 +5001,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -4722,13 +5027,16 @@
           "initialized": {
             "type": "boolean"
           },
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
           "end": {
             "type": "integer",
             "format": "int32"
           },
-          "start": {
-            "type": "integer",
-            "format": "int32"
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/EnumReservedRange"
           },
           "serializedSize": {
             "type": "integer",
@@ -4737,20 +5045,17 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserEnumReservedRange"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/EnumReservedRange"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -4762,31 +5067,31 @@
       "EnumReservedRangeOrBuilder": {
         "type": "object",
         "properties": {
-          "end": {
+          "start": {
             "type": "integer",
             "format": "int32"
           },
-          "start": {
+          "end": {
             "type": "integer",
             "format": "int32"
           },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -4843,6 +5148,12 @@
           "initialized": {
             "type": "boolean"
           },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/EnumValueDescriptorProto"
+          },
+          "optionsOrBuilder": {
+            "$ref": "#/components/schemas/EnumValueOptionsOrBuilder"
+          },
           "serializedSize": {
             "type": "integer",
             "format": "int32"
@@ -4850,26 +5161,20 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserEnumValueDescriptorProto"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/EnumValueDescriptorProto"
-          },
-          "optionsOrBuilder": {
-            "$ref": "#/components/schemas/EnumValueOptionsOrBuilder"
-          },
           "nameBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -4900,20 +5205,20 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -4938,15 +5243,12 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserEnumValueOptions"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/EnumValueOptions"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -4954,21 +5256,24 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "uninterpretedOptionCount": {
+          "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserEnumValueOptions"
+          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -4995,15 +5300,15 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "uninterpretedOptionList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOption"
             }
-          },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
           },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/Message"
@@ -5011,17 +5316,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -5040,13 +5345,19 @@
           "initialized": {
             "type": "boolean"
           },
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
           "end": {
             "type": "integer",
             "format": "int32"
           },
-          "start": {
-            "type": "integer",
-            "format": "int32"
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/ExtensionRange"
+          },
+          "optionsOrBuilder": {
+            "$ref": "#/components/schemas/ExtensionRangeOptionsOrBuilder"
           },
           "serializedSize": {
             "type": "integer",
@@ -5055,23 +5366,17 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserExtensionRange"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/ExtensionRange"
-          },
-          "optionsOrBuilder": {
-            "$ref": "#/components/schemas/ExtensionRangeOptionsOrBuilder"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -5095,15 +5400,12 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserExtensionRangeOptions"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/ExtensionRangeOptions"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -5111,21 +5413,24 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "uninterpretedOptionCount": {
+          "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserExtensionRangeOptions"
+          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -5149,15 +5454,15 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "uninterpretedOptionList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOption"
             }
-          },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
           },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/Message"
@@ -5165,17 +5470,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -5188,11 +5493,11 @@
           "options": {
             "$ref": "#/components/schemas/ExtensionRangeOptions"
           },
-          "end": {
+          "start": {
             "type": "integer",
             "format": "int32"
           },
-          "start": {
+          "end": {
             "type": "integer",
             "format": "int32"
           },
@@ -5202,20 +5507,20 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -5312,13 +5617,7 @@
           "optional": {
             "type": "boolean"
           },
-          "realContainingOneof": {
-            "$ref": "#/components/schemas/OneofDescriptor"
-          },
-          "repeated": {
-            "type": "boolean"
-          },
-          "mapField": {
+          "extension": {
             "type": "boolean"
           },
           "liteType": {
@@ -5344,12 +5643,6 @@
               "SINT64"
             ]
           },
-          "extension": {
-            "type": "boolean"
-          },
-          "packable": {
-            "type": "boolean"
-          },
           "liteJavaType": {
             "type": "string",
             "enum": [
@@ -5365,6 +5658,18 @@
             ]
           },
           "packed": {
+            "type": "boolean"
+          },
+          "packable": {
+            "type": "boolean"
+          },
+          "realContainingOneof": {
+            "$ref": "#/components/schemas/OneofDescriptor"
+          },
+          "repeated": {
+            "type": "boolean"
+          },
+          "mapField": {
             "type": "boolean"
           }
         }
@@ -5425,12 +5730,8 @@
               "LABEL_REPEATED"
             ]
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserFieldDescriptorProto"
+          "jsonName": {
+            "type": "string"
           },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/FieldDescriptorProto"
@@ -5441,7 +5742,14 @@
           "defaultValueBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
-          "jsonName": {
+          "serializedSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserFieldDescriptorProto"
+          },
+          "extendee": {
             "type": "string"
           },
           "oneofIndex": {
@@ -5451,8 +5759,11 @@
           "proto3Optional": {
             "type": "boolean"
           },
-          "extendee": {
-            "type": "string"
+          "nameBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "extendeeBytes": {
+            "$ref": "#/components/schemas/ByteString"
           },
           "typeNameBytes": {
             "$ref": "#/components/schemas/ByteString"
@@ -5460,23 +5771,17 @@
           "jsonNameBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
-          "extendeeBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "nameBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -5535,13 +5840,16 @@
               "LABEL_REPEATED"
             ]
           },
+          "jsonName": {
+            "type": "string"
+          },
           "optionsOrBuilder": {
             "$ref": "#/components/schemas/FieldOptionsOrBuilder"
           },
           "defaultValueBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
-          "jsonName": {
+          "extendee": {
             "type": "string"
           },
           "oneofIndex": {
@@ -5551,8 +5859,11 @@
           "proto3Optional": {
             "type": "boolean"
           },
-          "extendee": {
-            "type": "string"
+          "nameBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "extendeeBytes": {
+            "$ref": "#/components/schemas/ByteString"
           },
           "typeNameBytes": {
             "$ref": "#/components/schemas/ByteString"
@@ -5560,29 +5871,23 @@
           "jsonNameBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
-          "extendeeBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "nameBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -5601,10 +5906,26 @@
           "deprecated": {
             "type": "boolean"
           },
+          "packed": {
+            "type": "boolean"
+          },
           "uninterpretedOptionOrBuilderList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
+            }
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/FieldOptions"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "uninterpretedOptionList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
           "serializedSize": {
@@ -5614,20 +5935,15 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserFieldOptions"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/FieldOptions"
+          "jstype": {
+            "type": "string",
+            "enum": [
+              "JS_NORMAL",
+              "JS_STRING",
+              "JS_NUMBER"
+            ]
           },
-          "uninterpretedOptionList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UninterpretedOption"
-            }
-          },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "packed": {
+          "weak": {
             "type": "boolean"
           },
           "ctype": {
@@ -5638,31 +5954,20 @@
               "STRING_PIECE"
             ]
           },
-          "jstype": {
-            "type": "string",
-            "enum": [
-              "JS_NORMAL",
-              "JS_STRING",
-              "JS_NUMBER"
-            ]
-          },
           "lazy": {
-            "type": "boolean"
-          },
-          "weak": {
             "type": "boolean"
           },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -5683,11 +5988,18 @@
           "deprecated": {
             "type": "boolean"
           },
+          "packed": {
+            "type": "boolean"
+          },
           "uninterpretedOptionOrBuilderList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -5695,11 +6007,15 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
+          "jstype": {
+            "type": "string",
+            "enum": [
+              "JS_NORMAL",
+              "JS_STRING",
+              "JS_NUMBER"
+            ]
           },
-          "packed": {
+          "weak": {
             "type": "boolean"
           },
           "ctype": {
@@ -5710,18 +6026,7 @@
               "STRING_PIECE"
             ]
           },
-          "jstype": {
-            "type": "string",
-            "enum": [
-              "JS_NORMAL",
-              "JS_STRING",
-              "JS_NUMBER"
-            ]
-          },
           "lazy": {
-            "type": "boolean"
-          },
-          "weak": {
             "type": "boolean"
           },
           "defaultInstanceForType": {
@@ -5730,17 +6035,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -5832,12 +6137,18 @@
           "initialized": {
             "type": "boolean"
           },
-          "serializedSize": {
+          "extensionList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldDescriptorProto"
+            }
+          },
+          "extensionCount": {
             "type": "integer",
             "format": "int32"
           },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserFileDescriptorProto"
+          "syntax": {
+            "type": "string"
           },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/FileDescriptorProto"
@@ -5848,13 +6159,25 @@
               "$ref": "#/components/schemas/FieldDescriptorProtoOrBuilder"
             }
           },
+          "publicDependencyCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "messageTypeCount": {
             "type": "integer",
             "format": "int32"
           },
-          "publicDependencyCount": {
-            "type": "integer",
-            "format": "int32"
+          "serviceOrBuilderList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDescriptorProtoOrBuilder"
+            }
+          },
+          "messageTypeOrBuilderList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DescriptorProtoOrBuilder"
+            }
           },
           "weakDependencyCount": {
             "type": "integer",
@@ -5873,24 +6196,6 @@
               "format": "int32"
             }
           },
-          "messageTypeOrBuilderList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DescriptorProtoOrBuilder"
-            }
-          },
-          "optionsOrBuilder": {
-            "$ref": "#/components/schemas/FileOptionsOrBuilder"
-          },
-          "serviceOrBuilderList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ServiceDescriptorProtoOrBuilder"
-            }
-          },
-          "sourceCodeInfoOrBuilder": {
-            "$ref": "#/components/schemas/SourceCodeInfoOrBuilder"
-          },
           "weakDependencyList": {
             "type": "array",
             "items": {
@@ -5898,24 +6203,20 @@
               "format": "int32"
             }
           },
-          "extensionList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FieldDescriptorProto"
-            }
+          "sourceCodeInfoOrBuilder": {
+            "$ref": "#/components/schemas/SourceCodeInfoOrBuilder"
           },
-          "extensionCount": {
+          "optionsOrBuilder": {
+            "$ref": "#/components/schemas/FileOptionsOrBuilder"
+          },
+          "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
-          "syntax": {
-            "type": "string"
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserFileDescriptorProto"
           },
           "enumTypeCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "serviceCount": {
             "type": "integer",
             "format": "int32"
           },
@@ -5923,29 +6224,12 @@
             "type": "integer",
             "format": "int32"
           },
-          "enumTypeList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EnumDescriptorProto"
-            }
-          },
-          "messageTypeList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DescriptorProto"
-            }
+          "serviceCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "packageBytes": {
             "$ref": "#/components/schemas/ByteString"
-          },
-          "sourceCodeInfo": {
-            "$ref": "#/components/schemas/SourceCodeInfo"
-          },
-          "serviceList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ServiceDescriptorProto"
-            }
           },
           "dependencyList": {
             "type": "array",
@@ -5961,20 +6245,41 @@
           "nameBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
+          "enumTypeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumDescriptorProto"
+            }
+          },
           "syntaxBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
+          "messageTypeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DescriptorProto"
+            }
+          },
+          "sourceCodeInfo": {
+            "$ref": "#/components/schemas/SourceCodeInfo"
+          },
+          "serviceList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceDescriptorProto"
+            }
+          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -6001,49 +6306,14 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserFileOptions"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/FileOptions"
           },
           "javaStringCheckUtf8": {
             "type": "boolean"
           },
-          "javaPackageBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "javaOuterClassnameBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "phpGenericServices": {
+          "javaGenericServices": {
             "type": "boolean"
-          },
-          "objcClassPrefixBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "swiftPrefixBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "phpClassPrefixBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "csharpNamespaceBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "javaOuterClassname": {
-            "type": "string"
-          },
-          "ccGenericServices": {
-            "type": "boolean"
-          },
-          "javaGenerateEqualsAndHash": {
-            "type": "boolean",
-            "deprecated": true
           },
           "javaMultipleFiles": {
             "type": "boolean"
@@ -6051,14 +6321,49 @@
           "pyGenericServices": {
             "type": "boolean"
           },
-          "javaGenericServices": {
+          "phpGenericServices": {
             "type": "boolean"
           },
-          "phpNamespaceBytes": {
+          "objcClassPrefixBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "csharpNamespaceBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "ccGenericServices": {
+            "type": "boolean"
+          },
+          "javaOuterClassnameBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "javaPackageBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "javaGenerateEqualsAndHash": {
+            "type": "boolean",
+            "deprecated": true
+          },
+          "javaOuterClassname": {
+            "type": "string"
+          },
+          "phpMetadataNamespaceBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "swiftPrefixBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
           "phpMetadataNamespace": {
             "type": "string"
+          },
+          "rubyPackageBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "phpClassPrefixBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -6066,35 +6371,32 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "phpMetadataNamespaceBytes": {
+          "phpNamespaceBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
-          "uninterpretedOptionCount": {
+          "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
-          "rubyPackageBytes": {
-            "$ref": "#/components/schemas/ByteString"
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserFileOptions"
+          },
+          "csharpNamespace": {
+            "type": "string"
           },
           "ccEnableArenas": {
             "type": "boolean"
           },
-          "goPackage": {
-            "type": "string"
-          },
-          "javaPackage": {
+          "swiftPrefix": {
             "type": "string"
           },
           "objcClassPrefix": {
             "type": "string"
           },
-          "csharpNamespace": {
+          "phpClassPrefix": {
             "type": "string"
           },
-          "goPackageBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "swiftPrefix": {
+          "javaPackage": {
             "type": "string"
           },
           "optimizeFor": {
@@ -6105,7 +6407,10 @@
               "LITE_RUNTIME"
             ]
           },
-          "phpClassPrefix": {
+          "goPackageBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "goPackage": {
             "type": "string"
           },
           "rubyPackage": {
@@ -6117,14 +6422,14 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -6154,36 +6459,8 @@
           "javaStringCheckUtf8": {
             "type": "boolean"
           },
-          "javaPackageBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "javaOuterClassnameBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "phpGenericServices": {
+          "javaGenericServices": {
             "type": "boolean"
-          },
-          "objcClassPrefixBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "swiftPrefixBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "phpClassPrefixBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "csharpNamespaceBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "javaOuterClassname": {
-            "type": "string"
-          },
-          "ccGenericServices": {
-            "type": "boolean"
-          },
-          "javaGenerateEqualsAndHash": {
-            "type": "boolean",
-            "deprecated": true
           },
           "javaMultipleFiles": {
             "type": "boolean"
@@ -6191,14 +6468,49 @@
           "pyGenericServices": {
             "type": "boolean"
           },
-          "javaGenericServices": {
+          "phpGenericServices": {
             "type": "boolean"
           },
-          "phpNamespaceBytes": {
+          "objcClassPrefixBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "csharpNamespaceBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "ccGenericServices": {
+            "type": "boolean"
+          },
+          "javaOuterClassnameBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "javaPackageBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "javaGenerateEqualsAndHash": {
+            "type": "boolean",
+            "deprecated": true
+          },
+          "javaOuterClassname": {
+            "type": "string"
+          },
+          "phpMetadataNamespaceBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "swiftPrefixBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
           "phpMetadataNamespace": {
             "type": "string"
+          },
+          "rubyPackageBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "phpClassPrefixBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -6206,35 +6518,25 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "phpMetadataNamespaceBytes": {
+          "phpNamespaceBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "rubyPackageBytes": {
-            "$ref": "#/components/schemas/ByteString"
+          "csharpNamespace": {
+            "type": "string"
           },
           "ccEnableArenas": {
             "type": "boolean"
           },
-          "goPackage": {
-            "type": "string"
-          },
-          "javaPackage": {
+          "swiftPrefix": {
             "type": "string"
           },
           "objcClassPrefix": {
             "type": "string"
           },
-          "csharpNamespace": {
+          "phpClassPrefix": {
             "type": "string"
           },
-          "goPackageBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "swiftPrefix": {
+          "javaPackage": {
             "type": "string"
           },
           "optimizeFor": {
@@ -6245,7 +6547,10 @@
               "LITE_RUNTIME"
             ]
           },
-          "phpClassPrefix": {
+          "goPackageBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "goPackage": {
             "type": "string"
           },
           "rubyPackage": {
@@ -6260,17 +6565,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -6299,49 +6604,15 @@
           "initialized": {
             "type": "boolean"
           },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Location"
+          },
           "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
           "parserForType": {
             "$ref": "#/components/schemas/ParserLocation"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Location"
-          },
-          "leadingComments": {
-            "type": "string"
-          },
-          "spanList": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          "pathList": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          "pathCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "spanCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "trailingComments": {
-            "type": "string"
-          },
-          "leadingCommentsBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "trailingCommentsBytes": {
-            "$ref": "#/components/schemas/ByteString"
           },
           "leadingDetachedCommentsList": {
             "type": "array",
@@ -6358,39 +6629,23 @@
             "type": "integer",
             "format": "int32"
           },
-          "descriptorForType": {
-            "$ref": "#/components/schemas/Descriptor"
+          "trailingCommentsBytes": {
+            "$ref": "#/components/schemas/ByteString"
           },
-          "allFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            }
+          "leadingCommentsBytes": {
+            "$ref": "#/components/schemas/ByteString"
           },
-          "initializationErrorString": {
+          "trailingComments": {
             "type": "string"
           },
-          "memoizedSerializedSize": {
-            "type": "integer",
-            "format": "int32",
-            "writeOnly": true
-          }
-        }
-      },
-      "LocationOrBuilder": {
-        "type": "object",
-        "properties": {
-          "leadingComments": {
-            "type": "string"
-          },
-          "spanList": {
+          "pathList": {
             "type": "array",
             "items": {
               "type": "integer",
               "format": "int32"
             }
           },
-          "pathList": {
+          "spanList": {
             "type": "array",
             "items": {
               "type": "integer",
@@ -6405,15 +6660,31 @@
             "type": "integer",
             "format": "int32"
           },
-          "trailingComments": {
+          "leadingComments": {
             "type": "string"
           },
-          "leadingCommentsBytes": {
-            "$ref": "#/components/schemas/ByteString"
+          "descriptorForType": {
+            "$ref": "#/components/schemas/Descriptor"
           },
-          "trailingCommentsBytes": {
-            "$ref": "#/components/schemas/ByteString"
+          "initializationErrorString": {
+            "type": "string"
           },
+          "allFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "memoizedSerializedSize": {
+            "type": "integer",
+            "format": "int32",
+            "writeOnly": true
+          }
+        }
+      },
+      "LocationOrBuilder": {
+        "type": "object",
+        "properties": {
           "leadingDetachedCommentsList": {
             "type": "array",
             "items": {
@@ -6424,23 +6695,57 @@
             "type": "integer",
             "format": "int32"
           },
+          "trailingCommentsBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "leadingCommentsBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "trailingComments": {
+            "type": "string"
+          },
+          "pathList": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "spanList": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "pathCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "spanCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "leadingComments": {
+            "type": "string"
+          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -6466,17 +6771,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           }
         }
       },
@@ -6540,11 +6845,33 @@
           "deprecated": {
             "type": "boolean"
           },
+          "mapEntry": {
+            "type": "boolean"
+          },
           "uninterpretedOptionOrBuilderList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/MessageOptions"
+          },
+          "messageSetWireFormat": {
+            "type": "boolean"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "uninterpretedOptionList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UninterpretedOption"
+            }
+          },
+          "noStandardDescriptorAccessor": {
+            "type": "boolean"
           },
           "serializedSize": {
             "type": "integer",
@@ -6553,39 +6880,17 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserMessageOptions"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/MessageOptions"
-          },
-          "messageSetWireFormat": {
-            "type": "boolean"
-          },
-          "uninterpretedOptionList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UninterpretedOption"
-            }
-          },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "noStandardDescriptorAccessor": {
-            "type": "boolean"
-          },
-          "mapEntry": {
-            "type": "boolean"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -6606,6 +6911,9 @@
           "deprecated": {
             "type": "boolean"
           },
+          "mapEntry": {
+            "type": "boolean"
+          },
           "uninterpretedOptionOrBuilderList": {
             "type": "array",
             "items": {
@@ -6615,20 +6923,17 @@
           "messageSetWireFormat": {
             "type": "boolean"
           },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "uninterpretedOptionList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
-          },
           "noStandardDescriptorAccessor": {
-            "type": "boolean"
-          },
-          "mapEntry": {
             "type": "boolean"
           },
           "defaultInstanceForType": {
@@ -6637,17 +6942,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -6714,6 +7019,12 @@
           "inputType": {
             "type": "string"
           },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/MethodDescriptorProto"
+          },
+          "optionsOrBuilder": {
+            "$ref": "#/components/schemas/MethodOptionsOrBuilder"
+          },
           "serializedSize": {
             "type": "integer",
             "format": "int32"
@@ -6721,13 +7032,10 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserMethodDescriptorProto"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/MethodDescriptorProto"
-          },
-          "optionsOrBuilder": {
-            "$ref": "#/components/schemas/MethodOptionsOrBuilder"
-          },
           "nameBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "outputTypeBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
           "inputTypeBytes": {
@@ -6736,23 +7044,20 @@
           "clientStreaming": {
             "type": "boolean"
           },
-          "outputTypeBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
           "serverStreaming": {
             "type": "boolean"
           },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -6782,14 +7087,14 @@
           "nameBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
+          "outputTypeBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
           "inputTypeBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
           "clientStreaming": {
             "type": "boolean"
-          },
-          "outputTypeBytes": {
-            "$ref": "#/components/schemas/ByteString"
           },
           "serverStreaming": {
             "type": "boolean"
@@ -6797,20 +7102,20 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -6835,15 +7140,12 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserMethodOptions"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/MethodOptions"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -6851,9 +7153,12 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "uninterpretedOptionCount": {
+          "serializedSize": {
             "type": "integer",
             "format": "int32"
+          },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserMethodOptions"
           },
           "idempotencyLevel": {
             "type": "string",
@@ -6866,14 +7171,14 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -6900,15 +7205,15 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "uninterpretedOptionList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOption"
             }
-          },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
           },
           "idempotencyLevel": {
             "type": "string",
@@ -6924,17 +7229,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -6950,6 +7255,9 @@
           "initialized": {
             "type": "boolean"
           },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/NamePart"
+          },
           "serializedSize": {
             "type": "integer",
             "format": "int32"
@@ -6957,8 +7265,8 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserNamePart"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/NamePart"
+          "namePart": {
+            "type": "string"
           },
           "namePartBytes": {
             "$ref": "#/components/schemas/ByteString"
@@ -6966,20 +7274,17 @@
           "isExtension": {
             "type": "boolean"
           },
-          "namePart": {
-            "type": "string"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -6991,32 +7296,32 @@
       "NamePartOrBuilder": {
         "type": "object",
         "properties": {
+          "namePart": {
+            "type": "string"
+          },
           "namePartBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
           "isExtension": {
             "type": "boolean"
           },
-          "namePart": {
-            "type": "string"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -7078,6 +7383,12 @@
           "initialized": {
             "type": "boolean"
           },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/OneofDescriptorProto"
+          },
+          "optionsOrBuilder": {
+            "$ref": "#/components/schemas/OneofOptionsOrBuilder"
+          },
           "serializedSize": {
             "type": "integer",
             "format": "int32"
@@ -7085,26 +7396,20 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserOneofDescriptorProto"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/OneofDescriptorProto"
-          },
-          "optionsOrBuilder": {
-            "$ref": "#/components/schemas/OneofOptionsOrBuilder"
-          },
           "nameBytes": {
             "$ref": "#/components/schemas/ByteString"
           },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -7131,20 +7436,20 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -7166,15 +7471,12 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserOneofOptions"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/OneofOptions"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -7182,21 +7484,24 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "uninterpretedOptionCount": {
+          "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserOneofOptions"
+          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -7220,15 +7525,15 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "uninterpretedOptionList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOption"
             }
-          },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
           },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/Message"
@@ -7236,17 +7541,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -7393,13 +7698,16 @@
           "initialized": {
             "type": "boolean"
           },
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
           "end": {
             "type": "integer",
             "format": "int32"
           },
-          "start": {
-            "type": "integer",
-            "format": "int32"
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/ReservedRange"
           },
           "serializedSize": {
             "type": "integer",
@@ -7408,20 +7716,17 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserReservedRange"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/ReservedRange"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -7433,31 +7738,31 @@
       "ReservedRangeOrBuilder": {
         "type": "object",
         "properties": {
-          "end": {
+          "start": {
             "type": "integer",
             "format": "int32"
           },
-          "start": {
+          "end": {
             "type": "integer",
             "format": "int32"
           },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -7509,18 +7814,18 @@
           "initialized": {
             "type": "boolean"
           },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/ServiceDescriptorProto"
+          },
+          "optionsOrBuilder": {
+            "$ref": "#/components/schemas/ServiceOptionsOrBuilder"
+          },
           "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
           "parserForType": {
             "$ref": "#/components/schemas/ParserServiceDescriptorProto"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/ServiceDescriptorProto"
-          },
-          "optionsOrBuilder": {
-            "$ref": "#/components/schemas/ServiceOptionsOrBuilder"
           },
           "nameBytes": {
             "$ref": "#/components/schemas/ByteString"
@@ -7529,29 +7834,29 @@
             "type": "integer",
             "format": "int32"
           },
-          "methodList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MethodDescriptorProto"
-            }
-          },
           "methodOrBuilderList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MethodDescriptorProtoOrBuilder"
             }
           },
+          "methodList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MethodDescriptorProto"
+            }
+          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -7579,35 +7884,35 @@
             "type": "integer",
             "format": "int32"
           },
-          "methodList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MethodDescriptorProto"
-            }
-          },
           "methodOrBuilderList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MethodDescriptorProtoOrBuilder"
             }
           },
+          "methodList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MethodDescriptorProto"
+            }
+          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -7632,15 +7937,12 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserServiceOptions"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/ServiceOptions"
+          },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "uninterpretedOptionList": {
             "type": "array",
@@ -7648,21 +7950,24 @@
               "$ref": "#/components/schemas/UninterpretedOption"
             }
           },
-          "uninterpretedOptionCount": {
+          "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserServiceOptions"
+          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "allFieldsRaw": {
             "type": "object",
@@ -7689,15 +7994,15 @@
               "$ref": "#/components/schemas/UninterpretedOptionOrBuilder"
             }
           },
+          "uninterpretedOptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "uninterpretedOptionList": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UninterpretedOption"
             }
-          },
-          "uninterpretedOptionCount": {
-            "type": "integer",
-            "format": "int32"
           },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/Message"
@@ -7705,17 +8010,17 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -7731,13 +8036,6 @@
           "initialized": {
             "type": "boolean"
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/ParserSourceCodeInfo"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/SourceCodeInfo"
           },
@@ -7746,6 +8044,13 @@
             "items": {
               "$ref": "#/components/schemas/LocationOrBuilder"
             }
+          },
+          "serializedSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parserForType": {
+            "$ref": "#/components/schemas/ParserSourceCodeInfo"
           },
           "locationList": {
             "type": "array",
@@ -7760,14 +8065,14 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -7798,20 +8103,20 @@
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
           },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
+          },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -7835,6 +8140,9 @@
             "type": "integer",
             "format": "int32"
           },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
           "serializedSize": {
             "type": "integer",
             "format": "int32"
@@ -7842,20 +8150,17 @@
           "parserForType": {
             "$ref": "#/components/schemas/ParserTimestamp"
           },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -7875,6 +8180,26 @@
             "type": "integer",
             "format": "int32"
           },
+          "identifierValueBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "positiveIntValue": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "nameOrBuilderList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NamePartOrBuilder"
+            }
+          },
+          "negativeIntValue": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "aggregateValueBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
           "initialized": {
             "type": "boolean"
           },
@@ -7888,15 +8213,15 @@
           "identifierValue": {
             "type": "string"
           },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/UninterpretedOption"
+          },
           "serializedSize": {
             "type": "integer",
             "format": "int32"
           },
           "parserForType": {
             "$ref": "#/components/schemas/ParserUninterpretedOption"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/UninterpretedOption"
           },
           "nameList": {
             "type": "array",
@@ -7907,37 +8232,17 @@
           "aggregateValue": {
             "type": "string"
           },
-          "aggregateValueBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "positiveIntValue": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "identifierValueBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "negativeIntValue": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "nameOrBuilderList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NamePartOrBuilder"
-            }
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "memoizedSerializedSize": {
             "type": "integer",
@@ -7953,6 +8258,26 @@
             "type": "integer",
             "format": "int32"
           },
+          "identifierValueBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
+          "positiveIntValue": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "nameOrBuilderList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NamePartOrBuilder"
+            }
+          },
+          "negativeIntValue": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "aggregateValueBytes": {
+            "$ref": "#/components/schemas/ByteString"
+          },
           "doubleValue": {
             "type": "number",
             "format": "double"
@@ -7972,43 +8297,23 @@
           "aggregateValue": {
             "type": "string"
           },
-          "aggregateValueBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "positiveIntValue": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "identifierValueBytes": {
-            "$ref": "#/components/schemas/ByteString"
-          },
-          "negativeIntValue": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "nameOrBuilderList": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NamePartOrBuilder"
-            }
-          },
           "descriptorForType": {
             "$ref": "#/components/schemas/Descriptor"
+          },
+          "initializationErrorString": {
+            "type": "string"
+          },
+          "defaultInstanceForType": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "unknownFields": {
+            "$ref": "#/components/schemas/UnknownFieldSet"
           },
           "allFields": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "unknownFields": {
-            "$ref": "#/components/schemas/UnknownFieldSet"
-          },
-          "defaultInstanceForType": {
-            "$ref": "#/components/schemas/Message"
-          },
-          "initializationErrorString": {
-            "type": "string"
           },
           "initialized": {
             "type": "boolean"
@@ -8021,23 +8326,23 @@
           "initialized": {
             "type": "boolean"
           },
-          "serializedSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "parserForType": {
-            "$ref": "#/components/schemas/Parser"
-          },
           "defaultInstanceForType": {
             "$ref": "#/components/schemas/UnknownFieldSet"
           },
           "serializedSizeAsMessageSet": {
             "type": "integer",
             "format": "int32"
+          },
+          "serializedSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parserForType": {
+            "$ref": "#/components/schemas/Parser"
           }
         }
       },
-      "EndpointRecipientsResponse": {
+      "VersionsResponse": {
         "type": "object",
         "properties": {
           "timestamp": {
@@ -8045,298 +8350,22 @@
             "description": "The timestamp (UTC) of the response.",
             "format": "date-time"
           },
-          "messageRecipients": {
-            "type": "array",
-            "description": "The message recipients for this endpoint.",
-            "items": {
-              "$ref": "#/components/schemas/MessageRecipientDto"
-            }
-          }
-        },
-        "description": "The response when asking for the recipients of an endpoint."
-      },
-      "MessageRecipientDto": {
-        "type": "object",
-        "properties": {
-          "agrirouterEndpointId": {
-            "type": "string"
-          },
-          "endpointName": {
-            "type": "string"
-          },
-          "endpointType": {
-            "type": "string"
-          },
-          "externalId": {
-            "type": "string"
-          },
-          "technicalMessageType": {
-            "type": "string"
-          },
-          "direction": {
-            "type": "string"
-          },
-          "cached": {
-            "type": "boolean"
-          },
-          "timestamp": {
+          "version": {
             "type": "string"
           }
         },
-        "description": "The status of an endpoint."
+        "description": "Response schema for the version information."
       },
-      "BusinessEventsResponse": {
-        "type": "object",
-        "properties": {
-          "externalEndpointId": {
-            "type": "string",
-            "description": "External endpoint ID."
-          },
-          "businessEvents": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "Business events.",
-              "format": "date-time"
-            },
-            "description": "Business events."
-          }
-        },
-        "description": "Response object for business events of an endpoint."
-      },
-      "FindApplicationResponse": {
+      "AgrirouterStatusResponse": {
         "type": "object",
         "properties": {
           "timestamp": {
             "type": "string",
             "description": "The timestamp (UTC) of the response.",
             "format": "date-time"
-          },
-          "application": {
-            "$ref": "#/components/schemas/ApplicationDto"
           }
         },
-        "description": "The response when searching for an application."
-      },
-      "EndpointDto": {
-        "type": "object",
-        "properties": {
-          "agrirouterEndpointId": {
-            "type": "string",
-            "description": "The ID of an endpoint."
-          },
-          "externalEndpointId": {
-            "type": "string",
-            "description": "The external ID of an endpoint."
-          },
-          "endpointType": {
-            "type": "string",
-            "description": "The type of the endpoint.",
-            "enum": [
-              "NON_VIRTUAL",
-              "VIRTUAL"
-            ]
-          },
-          "deactivated": {
-            "type": "boolean",
-            "description": "Marks an endpoint as deactivated."
-          },
-          "agrirouterAccountId": {
-            "type": "string",
-            "description": "The account ID for this endpoint."
-          }
-        },
-        "description": "Representation of an endpoint."
-      },
-      "EndpointWithChildrenDto": {
-        "type": "object",
-        "properties": {
-          "agrirouterEndpointId": {
-            "type": "string",
-            "description": "The ID of an endpoint."
-          },
-          "externalEndpointId": {
-            "type": "string",
-            "description": "The external ID of an endpoint."
-          },
-          "endpointType": {
-            "type": "string",
-            "description": "The type of the endpoint.",
-            "enum": [
-              "NON_VIRTUAL",
-              "VIRTUAL"
-            ]
-          },
-          "connectedVirtualEndpoints": {
-            "type": "array",
-            "description": "All the children of the endpoint.",
-            "items": {
-              "$ref": "#/components/schemas/EndpointDto"
-            }
-          },
-          "deactivated": {
-            "type": "boolean",
-            "description": "Marks an endpoint as deactivated."
-          },
-          "agrirouterAccountId": {
-            "type": "string",
-            "description": "The account ID for this endpoint."
-          }
-        },
-        "description": "Representation of an endpoint with all children."
-      },
-      "FindEndpointsForApplicationResponse": {
-        "type": "object",
-        "properties": {
-          "timestamp": {
-            "type": "string",
-            "description": "The timestamp (UTC) of the response.",
-            "format": "date-time"
-          },
-          "endpoints": {
-            "type": "array",
-            "description": "The endpoints for this application.",
-            "items": {
-              "$ref": "#/components/schemas/EndpointWithChildrenDto"
-            }
-          }
-        },
-        "description": "The response when searching for endpoints belonging to the application."
-      },
-      "ApplicationStatusResponse": {
-        "type": "object",
-        "properties": {
-          "timestamp": {
-            "type": "string",
-            "description": "The timestamp (UTC) of the response.",
-            "format": "date-time"
-          },
-          "application": {
-            "$ref": "#/components/schemas/ApplicationWithEndpointStatusDto"
-          }
-        },
-        "description": "Response class to show the current status of an application."
-      },
-      "ApplicationWithEndpointStatusDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "The technical ID of the entity.",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the application."
-          },
-          "applicationId": {
-            "type": "string",
-            "description": "The agrirouter© ID of the application."
-          },
-          "internalApplicationId": {
-            "type": "string",
-            "description": "The internal ID of the application."
-          },
-          "versionId": {
-            "type": "string",
-            "description": "The version of the application. Each agrirouter© version creates a new application in the middleware."
-          },
-          "endpointsWithStatus": {
-            "type": "array",
-            "description": "The status information for all endpoints within the application.",
-            "items": {
-              "$ref": "#/components/schemas/EndpointWithStatusDto"
-            }
-          }
-        },
-        "description": "The current status of the application incl. its endpoints."
-      },
-      "ConnectionStateDto": {
-        "type": "object",
-        "properties": {
-          "cached": {
-            "type": "boolean",
-            "description": "Is the connection available and cached?"
-          },
-          "connected": {
-            "type": "boolean",
-            "description": "Is the connection still connected to the AR?"
-          },
-          "clientId": {
-            "type": "string",
-            "description": "The client ID of the connection."
-          }
-        },
-        "description": "The current status of the connection."
-      },
-      "EndpointStatusDto": {
-        "type": "object",
-        "properties": {
-          "lastUpdate": {
-            "type": "string",
-            "description": "The last update.",
-            "format": "date-time"
-          },
-          "nrOfMessagesWithinTheInbox": {
-            "type": "integer",
-            "description": "The number of messages within the inbox.",
-            "format": "int32"
-          },
-          "connectionState": {
-            "$ref": "#/components/schemas/ConnectionStateDto"
-          }
-        },
-        "description": "The connection status of an endpoint."
-      },
-      "EndpointWithStatusDto": {
-        "type": "object",
-        "properties": {
-          "agrirouterEndpointId": {
-            "type": "string",
-            "description": "The ID of an endpoint."
-          },
-          "externalEndpointId": {
-            "type": "string",
-            "description": "The external ID of an endpoint."
-          },
-          "deactivated": {
-            "type": "boolean",
-            "description": "The current status of an endpoint, could be active or deactivated."
-          },
-          "internalApplicationId": {
-            "type": "string",
-            "description": "The internal ID of the application."
-          },
-          "applicationId": {
-            "type": "string",
-            "description": "The ID of the application."
-          },
-          "versionId": {
-            "type": "string",
-            "description": "The ID of the application version."
-          },
-          "agrirouterAccountId": {
-            "type": "string",
-            "description": "The account ID for this endpoint."
-          },
-          "endpointType": {
-            "type": "string",
-            "description": "The type of the endpoint.",
-            "enum": [
-              "NON_VIRTUAL",
-              "VIRTUAL"
-            ]
-          },
-          "endpointStatus": {
-            "$ref": "#/components/schemas/EndpointStatusDto"
-          },
-          "nrOfMessagesCached": {
-            "type": "integer",
-            "description": "Nr. of messages that are cached.",
-            "format": "int64"
-          }
-        },
-        "description": "The status of an endpoint."
+        "description": "The response for the agrirouter© status."
       },
       "RevokeVirtualEndpointRequest": {
         "required": [
@@ -8357,6 +8386,11 @@
       }
     },
     "securitySchemes": {
+      "monitoring": {
+        "type": "http",
+        "description": "Default monitoring scheme, used for the monitoring and statistics.",
+        "scheme": "basic"
+      },
       "secured": {
         "type": "http",
         "description": "Default security scheme, used for the private flows.",

@@ -14,9 +14,13 @@ import de.agrirouter.middleware.integration.ack.MessageWaitingForAcknowledgement
 import de.agrirouter.middleware.integration.mqtt.MqttClientManagementService;
 import de.agrirouter.middleware.integration.status.AgrirouterStatusIntegrationService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.ThreadUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -32,6 +36,12 @@ public class ScheduledFetchingAndConfirmingForExistingMessages {
     private final MqttClientManagementService mqttClientManagementService;
     private final BusinessOperationLogService businessOperationLogService;
     private final AgrirouterStatusIntegrationService agrirouterStatusIntegrationService;
+
+    @Value("${app.scheduled.sleep-time-between-queries-seconds}")
+    private long sleepTimeBetweenQueries;
+
+    @Value("${app.scheduled.random-delay-minutes}")
+    private long randomDelayForTheStartOfTheScheduledTask;
 
     public ScheduledFetchingAndConfirmingForExistingMessages(EndpointService endpointService,
                                                              MessageWaitingForAcknowledgementService messageWaitingForAcknowledgementService,
@@ -51,10 +61,22 @@ public class ScheduledFetchingAndConfirmingForExistingMessages {
     @Scheduled(cron = "${app.scheduled.fetching-and-confirming-existing-messages}")
     public void scheduleFetchingAndConfirmingExistingMessagesForAllEndpoints() {
         if (agrirouterStatusIntegrationService.isOperational()) {
+            try {
+                long waitTime = RandomUtils.nextLong(1, randomDelayForTheStartOfTheScheduledTask);
+                log.debug("Sleeping for {} minutes before fetching and confirming existing messages.", waitTime);
+                ThreadUtils.sleep(Duration.ofMinutes(waitTime));
+            } catch (InterruptedException e) {
+                log.error("Could not sleep before fetching and confirming existing messages.");
+            }
             log.debug("Scheduled fetching and confirming for existing messages.");
             endpointService.findAll().stream().filter(endpoint -> !endpoint.isDeactivated()).forEach(endpoint -> {
                 this.fetchAndConfirmExistingMessages(endpoint);
                 businessOperationLogService.log(new EndpointLogInformation(endpoint.getExternalEndpointId(), endpoint.getAgrirouterEndpointId()), "Scheduled fetching and confirming of existing messages.");
+                try {
+                    ThreadUtils.sleep(Duration.ofSeconds(sleepTimeBetweenQueries));
+                } catch (InterruptedException e) {
+                    log.error("Could not sleep between queries.");
+                }
             });
         } else {
             log.debug("Agrirouter is not operational. Skipping scheduled fetching and confirming for existing messages.");
@@ -63,7 +85,7 @@ public class ScheduledFetchingAndConfirmingForExistingMessages {
 
     private void fetchAndConfirmExistingMessages(Endpoint endpoint) {
         log.debug("Fetching and confirming existing messages for endpoint '{}'.", endpoint.getExternalEndpointId());
-        final var iMqttClient = mqttClientManagementService.get(endpoint.asOnboardingResponse());
+        final var iMqttClient = mqttClientManagementService.get(endpoint);
         if (iMqttClient.isEmpty()) {
             log.error(ErrorMessageFactory.couldNotConnectMqttClient(endpoint.asOnboardingResponse().getSensorAlternateId()).asLogMessage());
         } else {

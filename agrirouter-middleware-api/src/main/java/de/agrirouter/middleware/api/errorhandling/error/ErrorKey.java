@@ -43,7 +43,10 @@ public enum ErrorKey {
     AGRIROUTER_STATUS_NOT_AVAILABLE(ERR_ + "00034"),
     AGRIROUTER_STATUS_NOT_OPERATIONAL(ERR_ + "00035"),
     NOT_AUTHORIZED(ERR_ + "00036"),
-    COULD_NOT_PUBLISH_HEALTH_MESSAGE(ERR_ + "00037");
+    COULD_NOT_PUBLISH_HEALTH_MESSAGE(ERR_ + "00037"),
+    MISSING_ROUTER_DEVICE(ERR_ + "00038"),
+    COULD_NOT_DECODE_BASE64_ENCODED_MESSAGE_CONTENT(ERR_ + "00039"),
+    ROUTER_DEVICE_ALREADY_EXISTS(ERR_ + "00040");
 
     private final String key;
 
@@ -59,4 +62,4 @@ public enum ErrorKey {
     public String toString() {
         return key;
     }
-    }
+}

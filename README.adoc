@@ -57,14 +57,12 @@ All you need to do is to send a request using the https://www.lmis.de/connectivi
 The hosting on the QA environment is free and won't be charged.
 If you need a hosting offer for production, please send out a request as well - there are reasonable packages for everyone.
 
-In addition, the project has an easy-to-use Docker compose script, a rapid solution for local development.
-
 == Public Postman Workspace
 
 There is a public Postman workspace available, which can be used to test the agrirouter© middleware.
 The workspace can be found here:
 
-https://www.postman.com/gold-trinity-758038/workspace/agrirouter-middleware
+https://www.postman.com/agrirouter-middleware/workspace/agrirouter-middleware/overview
 
 If there are any questions or issues regarding the workspace, please feel free to create an issue in the GitHub repository.
 Thanks for your support!

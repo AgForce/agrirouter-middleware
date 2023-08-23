@@ -99,6 +99,21 @@
       "name": "app.agrirouter.mqtt.synchronous.polling.intervall",
       "type": "java.lang.String",
       "description": "The interval to poll for a synchronous response."
+    },
+    {
+      "name": "app.cache.message-cache.batch-sleep-time-seconds",
+      "type": "java.lang.String",
+      "description": "The sleep time between two batches of the message cache."
+    },
+    {
+      "name": "app.scheduled.sleep-time-between-queries-seconds",
+      "type": "java.lang.String",
+      "description": "Wait time between two message queries."
+    },
+    {
+      "name": "app.scheduled.random-delay-minutes",
+      "type": "java.lang.String",
+      "description": "The random delay that will be added to the CRON."
     }
   ]
 }

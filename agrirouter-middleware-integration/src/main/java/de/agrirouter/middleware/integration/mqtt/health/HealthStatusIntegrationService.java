@@ -1,9 +1,8 @@
 package de.agrirouter.middleware.integration.mqtt.health;
 
-import com.dke.data.agrirouter.api.dto.onboard.OnboardingResponse;
 import de.agrirouter.middleware.api.errorhandling.BusinessException;
-import de.agrirouter.middleware.api.errorhandling.error.ErrorKey;
-import de.agrirouter.middleware.api.errorhandling.error.ErrorMessage;
+import de.agrirouter.middleware.api.errorhandling.error.ErrorMessageFactory;
+import de.agrirouter.middleware.domain.Endpoint;
 import de.agrirouter.middleware.integration.mqtt.MqttClientManagementService;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
@@ -33,31 +32,30 @@ public class HealthStatusIntegrationService {
     /**
      * Publish a health status message to the internal topic.
      *
-     * @param onboardingResponse The onboarding response.
+     * @param endpoint The endpoint.
      */
-    public void publishHealthStatusMessage(OnboardingResponse onboardingResponse) {
-        Optional<IMqttClient> mqttClient = mqttClientManagementService.get(onboardingResponse);
+    public void publishHealthStatusMessage(Endpoint endpoint) {
+        Optional<IMqttClient> mqttClient = mqttClientManagementService.get(endpoint);
         mqttClient.ifPresentOrElse(client -> {
             if (client.isConnected()) {
                 try {
+                    var onboardingResponse = endpoint.asOnboardingResponse();
                     var healthMessage = new MqttMessage();
                     var healthStatusMessage = new HealthStatusMessage();
-                    healthStatusMessage.setTimestamp(Instant.now().toEpochMilli());
-                    healthStatusMessage.setReason("HEALTH CHECK");
-                    healthStatusMessage.setAgrirouterEndpointId(onboardingResponse.getSensorAlternateId());
+                    healthStatusMessage.setAgrirouterEndpointId(endpoint.getAgrirouterEndpointId());
                     healthMessage.setPayload(healthStatusMessage.asJson().getBytes());
-                    healthMessage.setQos(1);
+                    healthMessage.setQos(0);
                     client.publish(onboardingResponse.getConnectionCriteria().getCommands(), healthMessage);
                     healthStatusMessages.put(healthStatusMessage);
                 } catch (MqttException e) {
                     log.error("Could not publish the health check message.", e);
-                    throw new BusinessException(new ErrorMessage(ErrorKey.COULD_NOT_PUBLISH_HEALTH_MESSAGE, "Could not publish the health check message."));
+                    throw new BusinessException(ErrorMessageFactory.couldNotPublishHealthMessage());
                 }
             } else {
                 log.error("Could not publish the health check message. MQTT client is not connected.");
-                throw new BusinessException(new ErrorMessage(ErrorKey.COULD_NOT_PUBLISH_HEALTH_MESSAGE, "Could not publish the health check message. MQTT client is not connected."));
+                throw new BusinessException(ErrorMessageFactory.couldNotPublishHealthMessageSinceClientIsNotConnected());
             }
-        }, () -> log.warn("Could not find or create a MQTT client for endpoint with the MQTT client ID '{}'.", onboardingResponse.getConnectionCriteria().getClientId()));
+        }, () -> log.warn("Could not find or create a MQTT client for endpoint with the external endpoint ID '{}'.", endpoint.getExternalEndpointId()));
     }
 
     /**
@@ -74,7 +72,7 @@ public class HealthStatusIntegrationService {
         }
         var hasBeenReturned = healthStatusMessage.isHasBeenReturned();
         if (!hasBeenReturned) {
-            log.warn("Health status message for endpoint ID {} has not been returned.", agrirouterEndpointId);
+            log.debug("Health status message for endpoint ID {} has not been returned.", agrirouterEndpointId);
         } else {
             log.info("Health status message for endpoint ID {} has been returned.", agrirouterEndpointId);
             healthStatusMessages.remove(agrirouterEndpointId);
